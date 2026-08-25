@@ -10,6 +10,8 @@ import { sendEmail } from "@/lib/email";
 import { purchaseOrderEmail } from "@/lib/email-templates";
 import { poNumber } from "@/lib/format";
 import { sendReminderForRequest, setReminderRecipients } from "@/lib/reminders";
+import { parseInventoryFile } from "@/lib/inventory-import";
+import { buildImportPlan, commitImport, type ImportPlan } from "@/lib/inventory-plan";
 
 function revalidateAdmin() {
   revalidatePath("/admin");
@@ -412,6 +414,99 @@ export async function upsertVendorPricing(formData: FormData) {
   revalidateAdmin();
   revalidatePath("/catalog");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Bulk inventory import from a spreadsheet
+// ---------------------------------------------------------------------------
+
+const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+async function readUploadedFile(formData: FormData) {
+  const file = formData.get("file");
+  if (!file || typeof file === "string") {
+    throw new Error("No file was uploaded.");
+  }
+  const blob = file as File;
+  if (blob.size === 0) throw new Error("The uploaded file is empty.");
+  if (blob.size > MAX_IMPORT_FILE_BYTES) {
+    throw new Error("File is too large (max 5 MB).");
+  }
+  const buffer = Buffer.from(await blob.arrayBuffer());
+  return { buffer, filename: blob.name || "upload.xlsx" };
+}
+
+export interface ImportPreviewResponse {
+  ok: boolean;
+  fatal?: string;
+  plan?: ImportPlan;
+  parseErrors?: { rowNumber: number; message: string }[];
+}
+
+export async function previewInventoryImport(
+  formData: FormData,
+): Promise<ImportPreviewResponse> {
+  await requireAdmin();
+  const { buffer, filename } = await readUploadedFile(formData);
+
+  const parsed = await parseInventoryFile(buffer, filename);
+  if (parsed.fatal) return { ok: false, fatal: parsed.fatal };
+  if (parsed.rows.length === 0) {
+    return {
+      ok: false,
+      fatal: "No valid rows found in the file.",
+      parseErrors: parsed.errors,
+    };
+  }
+
+  const plan = await buildImportPlan(parsed.rows);
+  return { ok: true, plan, parseErrors: parsed.errors };
+}
+
+export interface ImportCommitResponse {
+  ok: boolean;
+  error?: string;
+  summary?: {
+    vendorsCreated: number;
+    vendorsUpdated: number;
+    productsCreated: number;
+    productsUpdated: number;
+    pricingUpserted: number;
+    rowsSkipped: number;
+  };
+}
+
+export async function commitInventoryImport(
+  formData: FormData,
+): Promise<ImportCommitResponse> {
+  const admin = await requireAdmin();
+  const { buffer, filename } = await readUploadedFile(formData);
+
+  const parsed = await parseInventoryFile(buffer, filename);
+  if (parsed.fatal) return { ok: false, error: parsed.fatal };
+  if (parsed.rows.length === 0) {
+    return { ok: false, error: "No valid rows to import." };
+  }
+
+  try {
+    const result = await commitImport(parsed.rows);
+    await logAudit({
+      actorId: admin.id,
+      action: "inventory.imported",
+      details:
+        `Imported "${filename}": +${result.productsCreated} products, ` +
+        `~${result.productsUpdated} updated, +${result.vendorsCreated} vendors, ` +
+        `${result.pricingUpserted} pricing rows (${parsed.errors.length} rows skipped)`,
+    });
+    revalidateAdmin();
+    revalidatePath("/catalog");
+    return {
+      ok: true,
+      summary: { ...result, rowsSkipped: parsed.errors.length },
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Import failed." };
+  }
 }
 
 export async function deleteVendorPricing(formData: FormData) {

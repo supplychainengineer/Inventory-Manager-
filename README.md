@@ -119,6 +119,21 @@ curl -X POST http://localhost:3000/api/cron/reminders \
 
 - **Products / Vendors / Vendor Pricing** — full CRUD, with a per-product price
   comparison list from which you set the preferred vendor.
+- **Bulk import from Excel** — on the Products page, **Import from Excel** accepts
+  an `.xlsx` or `.csv` where each row is a product/vendor pricing line. It shows a
+  preview (what's new vs. updated, resolved preferred vendor, any new vendors and
+  skipped rows), then applies everything in one transaction. Imported products
+  appear in the catalog for ordering immediately. Download a pre-formatted
+  template from the same dialog (`GET /api/admin/import/template`).
+
+  **Columns:** `Product`, `Category`, `Vendor`, `Vendor Email`, `Vendor Contact`,
+  `Price`, `Delivery Days`, `Preferred` (headers are matched case-insensitively
+  with common synonyms). Product/Category/Vendor/Price/Delivery Days are required;
+  Vendor Email is required only for vendors that don't already exist. Rows sharing
+  a product name become one product with multiple vendor options; mark one row
+  `Preferred` (yes/y/x/1) to set the preferred vendor, otherwise the cheapest
+  vendor is chosen for new products. Existing products and vendors are matched by
+  name and updated.
 - **Budget & Spend** dashboard (`/admin`) — total spend, spend by vendor, spend by
   category, order count, average order value (computed off `ordered` + `received`).
 - **Audit Log** (`/admin/audit`) — every action, timestamped.

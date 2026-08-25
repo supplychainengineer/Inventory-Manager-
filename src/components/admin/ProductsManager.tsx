@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/Modal";
+import { ImportInventory } from "@/components/admin/ImportInventory";
 import {
   createProduct,
   updateProduct,
@@ -58,7 +59,8 @@ export function ProductsManager({
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex justify-end gap-3">
+        <ImportInventory />
         <button onClick={() => setCreating(true)} className="btn-primary px-3 py-2 text-xs">
           + New Product
         </button>

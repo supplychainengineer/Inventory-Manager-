@@ -1,0 +1,97 @@
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #ec3013;
+  --paper: #f3f2f2;
+  --ink: #1a1a1a;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@layer components {
+  /* Flush-left labelled buttons, zero radius, flat. */
+  .btn {
+    @apply inline-flex items-center justify-start gap-2 border-2 border-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-colors;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink hover:bg-paper;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-1 border-0 px-2 py-1 text-sm font-semibold text-accent hover:underline;
+  }
+  .btn-danger {
+    @apply btn border-accent bg-white text-accent hover:bg-accent hover:text-white;
+  }
+  .btn:disabled,
+  .btn-primary:disabled,
+  .btn-secondary:disabled {
+    @apply cursor-not-allowed opacity-40;
+  }
+
+  .field-label {
+    @apply mb-1 block text-left text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .field-input {
+    @apply w-full border-2 border-ink bg-white px-3 py-2 text-sm outline-none focus:border-accent;
+  }
+
+  .card {
+    @apply border-2 border-ink bg-white shadow-card;
+  }
+
+  /* Data-dense tables with themed header rows. */
+  .data-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .data-table thead th {
+    @apply border-b-2 border-ink bg-ink px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white;
+  }
+  .data-table tbody td {
+    @apply border-b border-muted/30 px-3 py-2 align-middle;
+  }
+  .data-table tbody tr:hover {
+    @apply bg-paper;
+  }
+
+  .badge {
+    @apply inline-block border px-2 py-0.5 text-xs font-bold uppercase tracking-wide;
+  }
+  .badge-pending {
+    @apply border-muted bg-white text-muted;
+  }
+  .badge-ordered {
+    @apply border-ink bg-ink text-white;
+  }
+  .badge-received {
+    @apply border-accent bg-accent text-white;
+  }
+  .badge-rejected {
+    @apply border-muted bg-paper text-muted line-through;
+  }
+  .badge-overdue {
+    @apply border-accent bg-accent-soft text-accent;
+  }
+
+  .section-divider {
+    @apply border-t-2 border-ink;
+  }
+}

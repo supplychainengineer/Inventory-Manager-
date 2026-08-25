@@ -1,0 +1,115 @@
+// Asana Ortho Inventory Manager — data model
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  staff
+  admin
+}
+
+enum RequestStatus {
+  pending
+  ordered
+  received
+  rejected
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(staff)
+  createdAt    DateTime @default(now())
+
+  requests  Request[]  @relation("RequestedBy")
+  auditLogs AuditLog[] @relation("Actor")
+}
+
+model Vendor {
+  id      String @id @default(cuid())
+  name    String
+  contact String?
+  email   String
+
+  pricing         VendorPricing[]
+  preferredFor    Product[]       @relation("PreferredVendor")
+  requests        Request[]
+}
+
+model Product {
+  id               String  @id @default(cuid())
+  name             String
+  category         String
+  preferredVendorId String?
+
+  preferredVendor Vendor?         @relation("PreferredVendor", fields: [preferredVendorId], references: [id], onDelete: SetNull)
+  pricing         VendorPricing[]
+  requests        Request[]
+}
+
+model VendorPricing {
+  id           String  @id @default(cuid())
+  productId    String
+  vendorId     String
+  price        Decimal @db.Decimal(10, 2)
+  deliveryDays Int
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  vendor  Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, vendorId])
+}
+
+model Request {
+  id            String        @id @default(cuid())
+  productId     String
+  qty           Int
+  requestedById String
+  requestedAt   DateTime      @default(now())
+  status        RequestStatus @default(pending)
+
+  // Snapshot fields captured at approval time.
+  vendorId     String?
+  price        Decimal?  @db.Decimal(10, 2)
+  deliveryDays Int?
+  orderedAt    DateTime?
+  dueDate      DateTime?
+  receivedAt   DateTime?
+
+  // Reminder bookkeeping.
+  reminderSent   Boolean   @default(false)
+  reminderSentAt DateTime?
+
+  product     Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  requestedBy User    @relation("RequestedBy", fields: [requestedById], references: [id])
+  vendor      Vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([requestedById])
+}
+
+model AuditLog {
+  id      String   @id @default(cuid())
+  at      DateTime @default(now())
+  actorId String?
+  action  String
+  details String?
+
+  actor User? @relation("Actor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([at])
+}
+
+// Single-row settings table for the reminder recipient list.
+model ReminderSettings {
+  id              Int      @id @default(1)
+  recipientEmails String[]
+  updatedAt       DateTime @updatedAt
+}

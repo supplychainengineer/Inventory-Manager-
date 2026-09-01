@@ -28,8 +28,9 @@ model User {
   role         Role     @default(staff)
   createdAt    DateTime @default(now())
 
-  requests  Request[]  @relation("RequestedBy")
-  auditLogs AuditLog[] @relation("Actor")
+  requests      Request[]      @relation("RequestedBy")
+  auditLogs     AuditLog[]     @relation("Actor")
+  procedureLogs ProcedureLog[] @relation("ProcedureLoggedBy")
 }
 
 model Vendor {
@@ -49,9 +50,71 @@ model Product {
   category         String
   preferredVendorId String?
 
+  // Inventory tracking. onHand / reorderPoint are in the base `unit` (pieces);
+  // packSize converts an ordered pack back into pieces on receipt. bufferPct is
+  // the per-product margin of error (null → fall back to the global setting).
+  unit         String  @default("unit")
+  packSize     Int     @default(1)
+  onHand       Float   @default(0)
+  reorderPoint Float   @default(0)
+  bufferPct    Int?
+
   preferredVendor Vendor?         @relation("PreferredVendor", fields: [preferredVendorId], references: [id], onDelete: SetNull)
   pricing         VendorPricing[]
   requests        Request[]
+  bomItems        BomItem[]
+  stockTxns       StockTxn[]
+}
+
+model Procedure {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  bom  BomItem[]
+  logs ProcedureLog[]
+}
+
+// One line of a procedure's bill of materials: how many pieces of a product it
+// consumes each time the procedure is performed.
+model BomItem {
+  id          String @id @default(cuid())
+  procedureId String
+  productId   String
+  qty         Float
+
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([procedureId, productId])
+}
+
+model ProcedureLog {
+  id          String   @id @default(cuid())
+  at          DateTime @default(now())
+  procedureId String
+  count       Int
+  loggedById  String?
+
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  loggedBy  User?     @relation("ProcedureLoggedBy", fields: [loggedById], references: [id], onDelete: SetNull)
+
+  @@index([at])
+}
+
+// Immutable ledger of stock movements (received / procedure / count / adjustment).
+model StockTxn {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  productId String
+  delta     Float
+  reason    String
+  ref       String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([at])
+  @@index([productId])
 }
 
 model VendorPricing {
@@ -109,7 +172,8 @@ model AuditLog {
 
 // Single-row settings table for the reminder recipient list.
 model ReminderSettings {
-  id              Int      @id @default(1)
-  recipientEmails String[]
-  updatedAt       DateTime @updatedAt
+  id                 Int      @id @default(1)
+  recipientEmails    String[]
+  inventoryBufferPct Int      @default(10)
+  updatedAt          DateTime @updatedAt
 }

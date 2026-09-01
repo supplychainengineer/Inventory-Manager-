@@ -90,6 +90,12 @@ body {
   .badge-overdue {
     @apply border-accent bg-accent-soft text-accent;
   }
+  .badge-ok {
+    @apply border-[#1f7a3d] bg-[#1f7a3d] text-white;
+  }
+  .badge-warn {
+    @apply border-[#b25e00] bg-white text-[#b25e00];
+  }
 
   .section-divider {
     @apply border-t-2 border-ink;

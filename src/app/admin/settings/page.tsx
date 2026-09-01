@@ -1,20 +1,30 @@
 import { PageHeader } from "@/components/AppShell";
 import { ReminderSettingsForm } from "@/components/admin/ReminderSettingsForm";
-import { getReminderRecipients } from "@/lib/reminders";
+import { InventoryBufferForm } from "@/components/admin/InventoryBufferForm";
+import { getReminderRecipients, getInventoryBufferPct } from "@/lib/reminders";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  const recipients = await getReminderRecipients();
+  const [recipients, bufferPct] = await Promise.all([
+    getReminderRecipients(),
+    getInventoryBufferPct(),
+  ]);
 
   return (
     <div>
       <PageHeader
-        title="Reminder Settings"
-        description="These addresses receive automated due-delivery reminders and manual reminders."
+        title="Settings"
+        description="Reminder recipients and inventory tracking defaults."
       />
 
+      <section className="card mb-8 p-6">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide">Inventory buffer</h2>
+        <InventoryBufferForm bufferPct={bufferPct} />
+      </section>
+
       <section className="card p-6">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide">Reminder recipients</h2>
         <ReminderSettingsForm recipients={recipients} />
       </section>
 

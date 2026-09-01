@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 export interface NavItem {
   href: string;
   label: string;
+  exact?: boolean;
 }
 
 export function AppShell({
@@ -30,7 +31,7 @@ export function AppShell({
             </Link>
             <nav className="flex items-center gap-5">
               {nav.map((item) => (
-                <NavLink key={item.href} href={item.href} label={item.label} />
+                <NavLink key={item.href} href={item.href} label={item.label} exact={item.exact} />
               ))}
             </nav>
           </div>

@@ -13,6 +13,23 @@ export async function getReminderRecipients(): Promise<string[]> {
   return settings?.recipientEmails ?? [];
 }
 
+export async function getInventoryBufferPct(): Promise<number> {
+  const settings = await prisma.reminderSettings.findUnique({
+    where: { id: DEFAULT_SETTINGS_ID },
+  });
+  return settings?.inventoryBufferPct ?? 10;
+}
+
+export async function setInventoryBufferPct(pct: number): Promise<number> {
+  const clamped = Math.min(90, Math.max(0, Math.round(pct)));
+  const settings = await prisma.reminderSettings.upsert({
+    where: { id: DEFAULT_SETTINGS_ID },
+    create: { id: DEFAULT_SETTINGS_ID, recipientEmails: [], inventoryBufferPct: clamped },
+    update: { inventoryBufferPct: clamped },
+  });
+  return settings.inventoryBufferPct;
+}
+
 export async function setReminderRecipients(emails: string[]): Promise<string[]> {
   const cleaned = Array.from(
     new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean)),

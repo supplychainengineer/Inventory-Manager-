@@ -26,7 +26,17 @@ export interface ProductDTO {
   category: string;
   preferredVendorId: string | null;
   preferredVendorName: string | null;
+  unit: string;
+  packSize: number;
+  onHand: number;
+  reorderPoint: number;
+  bufferPct: number | null;
   pricing: PricingDTO[];
+}
+
+function fmtQty(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  return Number.isInteger(r) ? String(r) : r.toFixed(2);
 }
 export interface VendorDTO {
   id: string;
@@ -72,6 +82,7 @@ export function ProductsManager({
             <tr>
               <th>Product</th>
               <th>Category</th>
+              <th className="text-right">On hand</th>
               <th>Preferred Vendor</th>
               <th className="text-right">Vendors</th>
               <th className="text-right">Best Price</th>
@@ -87,6 +98,9 @@ export function ProductsManager({
                 <tr key={p.id}>
                   <td className="font-semibold">{p.name}</td>
                   <td>{p.category}</td>
+                  <td className="text-right tabular-nums">
+                    {fmtQty(p.onHand)} <span className="text-muted">{p.unit}</span>
+                  </td>
                   <td>{p.preferredVendorName ?? <span className="text-accent">— none —</span>}</td>
                   <td className="text-right">{p.pricing.length}</td>
                   <td className="text-right">{best !== null ? money(best) : "—"}</td>
@@ -120,7 +134,7 @@ export function ProductsManager({
             })}
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-6 text-center text-sm text-muted">
+                <td colSpan={7} className="py-6 text-center text-sm text-muted">
                   No products yet.
                 </td>
               </tr>
@@ -168,7 +182,7 @@ export function ProductsManager({
               className="field-input"
             />
           </div>
-          <div className="mb-4">
+          <div className="mb-3">
             <label className="field-label">Preferred Vendor</label>
             <select
               name="preferredVendorId"
@@ -182,6 +196,63 @@ export function ProductsManager({
                 </option>
               ))}
             </select>
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2">
+            <div className="flex-1" style={{ minWidth: 110 }}>
+              <label className="field-label">Base unit</label>
+              <input
+                name="unit"
+                defaultValue={editing?.unit ?? ""}
+                placeholder="glove, kit…"
+                className="field-input"
+              />
+            </div>
+            <div className="flex-1" style={{ minWidth: 110 }}>
+              <label className="field-label">Pack size</label>
+              <input
+                name="packSize"
+                type="number"
+                min={1}
+                defaultValue={editing?.packSize ?? 1}
+                className="field-input"
+              />
+            </div>
+          </div>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <div className="flex-1" style={{ minWidth: 100 }}>
+              <label className="field-label">On hand</label>
+              <input
+                name="onHand"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={editing?.onHand ?? 0}
+                className="field-input"
+              />
+            </div>
+            <div className="flex-1" style={{ minWidth: 100 }}>
+              <label className="field-label">Reorder pt</label>
+              <input
+                name="reorderPoint"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={editing?.reorderPoint ?? 0}
+                className="field-input"
+              />
+            </div>
+            <div className="flex-1" style={{ minWidth: 90 }}>
+              <label className="field-label">Buffer %</label>
+              <input
+                name="bufferPct"
+                type="number"
+                min={0}
+                max={90}
+                defaultValue={editing?.bufferPct ?? ""}
+                placeholder="10"
+                className="field-input"
+              />
+            </div>
           </div>
           <button type="submit" disabled={pending} className="btn-primary w-full">
             {pending ? "Saving…" : "Save Product"}

@@ -11,6 +11,10 @@ async function main() {
 
   // Reset in dependency-safe order (idempotent seed).
   await prisma.auditLog.deleteMany();
+  await prisma.procedureLog.deleteMany();
+  await prisma.bomItem.deleteMany();
+  await prisma.procedure.deleteMany();
+  await prisma.stockTxn.deleteMany();
   await prisma.request.deleteMany();
   await prisma.vendorPricing.deleteMany();
   await prisma.product.deleteMany();
@@ -62,14 +66,22 @@ async function main() {
 
   // --- Products with vendor pricing ------------------------------------------
   type PricingSeed = { vendorId: string; price: number; deliveryDays: number };
+  type InvSeed = {
+    unit: string;
+    packSize: number;
+    onHand: number;
+    reorderPoint: number;
+    bufferPct: number;
+  };
   async function makeProduct(
     name: string,
     category: string,
     pricing: PricingSeed[],
     preferredVendorId: string,
+    inv: InvSeed,
   ) {
     const product = await prisma.product.create({
-      data: { name, category, preferredVendorId },
+      data: { name, category, preferredVendorId, ...inv },
     });
     for (const p of pricing) {
       await prisma.vendorPricing.create({
@@ -92,6 +104,7 @@ async function main() {
       { vendorId: patterson.id, price: 11.95, deliveryDays: 5 },
     ],
     patterson.id,
+    { unit: "glove", packSize: 200, onHand: 640, reorderPoint: 300, bufferPct: 10 },
   );
 
   const compositeResin = await makeProduct(
@@ -102,6 +115,7 @@ async function main() {
       { vendorId: benco.id, price: 84.5, deliveryDays: 6 },
     ],
     benco.id,
+    { unit: "application", packSize: 20, onHand: 150, reorderPoint: 80, bufferPct: 10 },
   );
 
   const orthoBrackets = await makeProduct(
@@ -112,6 +126,7 @@ async function main() {
       { vendorId: benco.id, price: 239.0, deliveryDays: 8 },
     ],
     benco.id,
+    { unit: "case", packSize: 1, onHand: 3, reorderPoint: 3, bufferPct: 15 },
   );
 
   const alginate = await makeProduct(
@@ -119,6 +134,7 @@ async function main() {
     "Impression",
     [{ vendorId: henrySchein.id, price: 18.75, deliveryDays: 3 }],
     henrySchein.id,
+    { unit: "scoop", packSize: 16, onHand: 60, reorderPoint: 48, bufferPct: 12 },
   );
 
   const sterilPouches = await makeProduct(
@@ -129,6 +145,7 @@ async function main() {
       { vendorId: henrySchein.id, price: 23.5, deliveryDays: 2 },
     ],
     patterson.id,
+    { unit: "pouch", packSize: 200, onHand: 360, reorderPoint: 200, bufferPct: 10 },
   );
 
   const bondingAgent = await makeProduct(
@@ -139,7 +156,49 @@ async function main() {
       { vendorId: henrySchein.id, price: 66.5, deliveryDays: 3 },
     ],
     benco.id,
+    { unit: "application", packSize: 50, onHand: 120, reorderPoint: 60, bufferPct: 12 },
   );
+
+  // --- Procedures & bills of materials ---------------------------------------
+  async function makeProcedure(
+    name: string,
+    bom: { productId: string; qty: number }[],
+  ) {
+    return prisma.procedure.create({
+      data: { name, bom: { create: bom } },
+    });
+  }
+
+  const procFilling = await makeProcedure("Composite Filling", [
+    { productId: nitrileGloves.id, qty: 2 },
+    { productId: compositeResin.id, qty: 1 },
+    { productId: bondingAgent.id, qty: 1 },
+  ]);
+  const procProphy = await makeProcedure("Cleaning / Prophy", [
+    { productId: nitrileGloves.id, qty: 2 },
+    { productId: sterilPouches.id, qty: 1 },
+  ]);
+  const procOrtho = await makeProcedure("Ortho Bracket Placement", [
+    { productId: nitrileGloves.id, qty: 2 },
+    { productId: orthoBrackets.id, qty: 1 },
+  ]);
+  const procImpression = await makeProcedure("Alginate Impression", [
+    { productId: nitrileGloves.id, qty: 2 },
+    { productId: alginate.id, qty: 2 },
+  ]);
+
+  // A little consumption history so burn-rate / days-of-cover have data.
+  // (onHand values above are already net of this history.)
+  await prisma.procedureLog.createMany({
+    data: [
+      { procedureId: procFilling.id, count: 6, loggedById: staff.id, at: daysFromNow(-1) },
+      { procedureId: procProphy.id, count: 9, loggedById: staff.id, at: daysFromNow(-1) },
+      { procedureId: procProphy.id, count: 11, loggedById: staff.id, at: daysFromNow(-2) },
+      { procedureId: procImpression.id, count: 4, loggedById: staff.id, at: daysFromNow(-2) },
+      { procedureId: procFilling.id, count: 8, loggedById: staff.id, at: daysFromNow(-3) },
+      { procedureId: procOrtho.id, count: 3, loggedById: staff.id, at: daysFromNow(-3) },
+    ],
+  });
 
   // --- Sample requests across statuses ---------------------------------------
   // 1) Pending request awaiting admin approval.
@@ -221,6 +280,7 @@ async function main() {
     data: {
       id: 1,
       recipientEmails: ["admin@asanaortho.com", "frontdesk@asanaortho.com"],
+      inventoryBufferPct: 10,
     },
   });
 

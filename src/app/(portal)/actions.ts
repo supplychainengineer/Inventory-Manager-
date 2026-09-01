@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { applyStock } from "@/lib/stock";
 
 const createRequestSchema = z.object({
   productId: z.string().min(1),
@@ -66,25 +67,80 @@ export async function markReceived(formData: FormData) {
     throw new Error("Only ordered requests can be marked received");
   }
 
-  await prisma.request.update({
-    where: { id: requestId },
-    data: {
-      status: "received",
-      receivedAt: new Date(),
-      // Cancel any pending reminder for this request.
-      reminderSent: true,
-      reminderSentAt: request.reminderSentAt ?? new Date(),
-    },
-  });
+  // Receiving replenishes stock: qty is in packs, converted to base units.
+  const pieces = request.qty * (request.product.packSize || 1);
 
-  await logAudit({
-    actorId: user.id,
-    action: "request.received",
-    details: `${user.name} marked ${request.qty} × ${request.product.name} as received`,
+  await prisma.$transaction(async (tx) => {
+    await tx.request.update({
+      where: { id: requestId },
+      data: {
+        status: "received",
+        receivedAt: new Date(),
+        // Cancel any pending reminder for this request.
+        reminderSent: true,
+        reminderSentAt: request.reminderSentAt ?? new Date(),
+      },
+    });
+    await applyStock(tx, request.productId, pieces, "received", request.id);
+    await logAudit(
+      {
+        actorId: user.id,
+        action: "request.received",
+        details: `${user.name} received ${request.qty} × ${request.product.name} → +${pieces} ${request.product.unit} to stock`,
+      },
+      tx,
+    );
   });
 
   revalidatePath("/my-requests");
   revalidatePath("/admin/awaiting");
   revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+  return { ok: true };
+}
+
+const logProcedureSchema = z.object({
+  procedureId: z.string().min(1),
+  count: z.coerce.number().int().positive().max(10000),
+});
+
+/** Records that a procedure was performed and auto-deducts its BOM from stock. */
+export async function logProcedure(formData: FormData) {
+  const user = await requireUser();
+  const parsed = logProcedureSchema.safeParse({
+    procedureId: formData.get("procedureId"),
+    count: formData.get("count"),
+  });
+  if (!parsed.success) throw new Error("Invalid procedure log input");
+
+  const procedure = await prisma.procedure.findUnique({
+    where: { id: parsed.data.procedureId },
+    include: { bom: true },
+  });
+  if (!procedure) throw new Error("Procedure not found");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.procedureLog.create({
+      data: {
+        procedureId: procedure.id,
+        count: parsed.data.count,
+        loggedById: user.id,
+      },
+    });
+    for (const line of procedure.bom) {
+      await applyStock(tx, line.productId, -(line.qty * parsed.data.count), "procedure", procedure.name);
+    }
+    await logAudit(
+      {
+        actorId: user.id,
+        action: "procedure.logged",
+        details: `${user.name} logged ${parsed.data.count} × ${procedure.name} (auto-deducted ${procedure.bom.length} material(s))`,
+      },
+      tx,
+    );
+  });
+
+  revalidatePath("/logwork");
+  revalidatePath("/admin/inventory");
   return { ok: true };
 }

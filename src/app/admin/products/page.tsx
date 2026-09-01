@@ -23,6 +23,11 @@ export default async function AdminProductsPage() {
     category: p.category,
     preferredVendorId: p.preferredVendorId,
     preferredVendorName: p.preferredVendor?.name ?? null,
+    unit: p.unit,
+    packSize: p.packSize,
+    onHand: p.onHand,
+    reorderPoint: p.reorderPoint,
+    bufferPct: p.bufferPct,
     pricing: p.pricing.map((pr) => ({
       id: pr.id,
       vendorId: pr.vendorId,

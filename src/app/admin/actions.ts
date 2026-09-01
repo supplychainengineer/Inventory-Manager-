@@ -9,9 +9,16 @@ import { logAudit } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { purchaseOrderEmail } from "@/lib/email-templates";
 import { poNumber } from "@/lib/format";
-import { sendReminderForRequest, setReminderRecipients } from "@/lib/reminders";
+import {
+  sendReminderForRequest,
+  setReminderRecipients,
+  setInventoryBufferPct,
+  getInventoryBufferPct,
+} from "@/lib/reminders";
 import { parseInventoryFile } from "@/lib/inventory-import";
 import { buildImportPlan, commitImport, type ImportPlan } from "@/lib/inventory-plan";
+import { applyStock } from "@/lib/stock";
+import { suggestedReorderPacks } from "@/lib/inventory";
 
 function revalidateAdmin() {
   revalidatePath("/admin");
@@ -272,22 +279,46 @@ const productSchema = z.object({
   name: z.string().min(1, "Name required"),
   category: z.string().min(1, "Category required"),
   preferredVendorId: z.string().optional().nullable(),
+  unit: z.string().optional(),
+  packSize: z.coerce.number().int().positive().max(100000).optional(),
+  onHand: z.coerce.number().nonnegative().optional(),
+  reorderPoint: z.coerce.number().nonnegative().optional(),
+  bufferPct: z.coerce.number().min(0).max(90).optional(),
 });
 
-export async function createProduct(formData: FormData) {
-  const admin = await requireAdmin();
-  const data = productSchema.parse({
+function readProductForm(formData: FormData) {
+  return productSchema.parse({
     name: formData.get("name"),
     category: formData.get("category"),
     preferredVendorId: formData.get("preferredVendorId") || null,
+    unit: formData.get("unit") || undefined,
+    packSize: formData.get("packSize") ?? undefined,
+    onHand: formData.get("onHand") ?? undefined,
+    reorderPoint: formData.get("reorderPoint") ?? undefined,
+    bufferPct: formData.get("bufferPct") ?? undefined,
   });
+}
+
+export async function createProduct(formData: FormData) {
+  const admin = await requireAdmin();
+  const data = readProductForm(formData);
   const product = await prisma.product.create({
     data: {
       name: data.name,
       category: data.category,
       preferredVendorId: data.preferredVendorId || null,
+      unit: data.unit || "unit",
+      packSize: data.packSize ?? 1,
+      onHand: data.onHand ?? 0,
+      reorderPoint: data.reorderPoint ?? 0,
+      bufferPct: data.bufferPct ?? null,
     },
   });
+  if ((data.onHand ?? 0) > 0) {
+    await prisma.stockTxn.create({
+      data: { productId: product.id, delta: data.onHand ?? 0, reason: "count", ref: "initial" },
+    });
+  }
   await logAudit({
     actorId: admin.id,
     action: "product.created",
@@ -295,6 +326,7 @@ export async function createProduct(formData: FormData) {
   });
   revalidateAdmin();
   revalidatePath("/catalog");
+  revalidatePath("/admin/inventory");
   return { ok: true };
 }
 
@@ -302,19 +334,29 @@ export async function updateProduct(formData: FormData) {
   const admin = await requireAdmin();
   const id = String(formData.get("id") || "");
   if (!id) throw new Error("Missing product id");
-  const data = productSchema.parse({
-    name: formData.get("name"),
-    category: formData.get("category"),
-    preferredVendorId: formData.get("preferredVendorId") || null,
-  });
+  const data = readProductForm(formData);
+  const existing = await prisma.product.findUnique({ where: { id }, select: { onHand: true } });
+  const nextOnHand = data.onHand ?? existing?.onHand ?? 0;
   const product = await prisma.product.update({
     where: { id },
     data: {
       name: data.name,
       category: data.category,
       preferredVendorId: data.preferredVendorId || null,
+      unit: data.unit || "unit",
+      packSize: data.packSize ?? 1,
+      onHand: nextOnHand,
+      reorderPoint: data.reorderPoint ?? 0,
+      bufferPct: data.bufferPct ?? null,
     },
   });
+  // Record a stock adjustment when the on-hand count was changed directly.
+  if (existing && nextOnHand !== existing.onHand) {
+    await prisma.stockTxn.create({
+      data: { productId: id, delta: nextOnHand - existing.onHand, reason: "count", ref: null },
+    });
+    revalidatePath("/admin/inventory");
+  }
   await logAudit({
     actorId: admin.id,
     action: "product.updated",
@@ -522,4 +564,144 @@ export async function deleteVendorPricing(formData: FormData) {
   revalidateAdmin();
   revalidatePath("/catalog");
   return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Procedures & BOM
+// ---------------------------------------------------------------------------
+
+const bomSchema = z.array(
+  z.object({ productId: z.string().min(1), qty: z.coerce.number().positive() }),
+);
+const procedureSchema = z.object({
+  name: z.string().min(1, "Procedure name required"),
+  bom: bomSchema.min(1, "Add at least one material"),
+});
+
+function readProcedureForm(formData: FormData) {
+  let bomRaw: unknown = [];
+  try {
+    bomRaw = JSON.parse(String(formData.get("bom") || "[]"));
+  } catch {
+    throw new Error("Invalid BOM data");
+  }
+  return procedureSchema.parse({ name: formData.get("name"), bom: bomRaw });
+}
+
+export async function createProcedure(formData: FormData) {
+  const admin = await requireAdmin();
+  const data = readProcedureForm(formData);
+  const procedure = await prisma.procedure.create({
+    data: { name: data.name, bom: { create: data.bom } },
+  });
+  await logAudit({
+    actorId: admin.id,
+    action: "procedure.created",
+    details: `Created procedure ${procedure.name}`,
+  });
+  revalidatePath("/admin/procedures");
+  revalidatePath("/logwork");
+  return { ok: true };
+}
+
+export async function updateProcedure(formData: FormData) {
+  const admin = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) throw new Error("Missing procedure id");
+  const data = readProcedureForm(formData);
+  await prisma.$transaction(async (tx) => {
+    await tx.procedure.update({ where: { id }, data: { name: data.name } });
+    await tx.bomItem.deleteMany({ where: { procedureId: id } });
+    await tx.bomItem.createMany({
+      data: data.bom.map((b) => ({ procedureId: id, productId: b.productId, qty: b.qty })),
+    });
+  });
+  await logAudit({
+    actorId: admin.id,
+    action: "procedure.updated",
+    details: `Updated procedure ${data.name}`,
+  });
+  revalidatePath("/admin/procedures");
+  revalidatePath("/logwork");
+  return { ok: true };
+}
+
+export async function deleteProcedure(formData: FormData) {
+  const admin = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) throw new Error("Missing procedure id");
+  const procedure = await prisma.procedure.findUnique({ where: { id } });
+  if (!procedure) throw new Error("Procedure not found");
+  await prisma.procedure.delete({ where: { id } });
+  await logAudit({
+    actorId: admin.id,
+    action: "procedure.deleted",
+    details: `Deleted procedure ${procedure.name}`,
+  });
+  revalidatePath("/admin/procedures");
+  revalidatePath("/logwork");
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Stock adjustments & reorder
+// ---------------------------------------------------------------------------
+
+export async function setStockCount(formData: FormData) {
+  const admin = await requireAdmin();
+  const productId = String(formData.get("productId") || "");
+  const newCount = z.coerce.number().nonnegative().parse(formData.get("count"));
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw new Error("Product not found");
+
+  const delta = newCount - product.onHand;
+  await prisma.$transaction(async (tx) => {
+    await applyStock(tx, productId, delta, "count", null);
+    await logAudit(
+      {
+        actorId: admin.id,
+        action: "stock.counted",
+        details: `${admin.name} set ${product.name} on-hand to ${newCount} ${product.unit}`,
+      },
+      tx,
+    );
+  });
+  revalidatePath("/admin/inventory");
+  return { ok: true };
+}
+
+export async function quickReorder(formData: FormData) {
+  const admin = await requireAdmin();
+  const productId = String(formData.get("productId") || "");
+  const product = await prisma.product.findUnique({ where: { id: productId } });
+  if (!product) throw new Error("Product not found");
+
+  const globalPct = await getInventoryBufferPct();
+  const packs = suggestedReorderPacks(product, globalPct);
+
+  await prisma.request.create({
+    data: { productId, qty: packs, requestedById: admin.id, status: "pending" },
+  });
+  await logAudit({
+    actorId: admin.id,
+    action: "request.created",
+    details: `${admin.name} reordered ${packs} pack(s) of ${product.name} (low stock)`,
+  });
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/requests");
+  return { ok: true, packs };
+}
+
+export async function updateInventoryBuffer(formData: FormData) {
+  const admin = await requireAdmin();
+  const pct = z.coerce.number().min(0).max(90).parse(formData.get("bufferPct"));
+  const saved = await setInventoryBufferPct(pct);
+  await logAudit({
+    actorId: admin.id,
+    action: "settings.inventoryBuffer.updated",
+    details: `Default inventory buffer set to ${saved}%`,
+  });
+  revalidatePath("/admin/settings");
+  revalidatePath("/admin/inventory");
+  return { ok: true, bufferPct: saved };
 }

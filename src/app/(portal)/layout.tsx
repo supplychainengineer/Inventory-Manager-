@@ -11,6 +11,7 @@ export default async function PortalLayout({
   const nav: NavItem[] = [
     { href: "/catalog", label: "Catalog" },
     { href: "/my-requests", label: "My Requests" },
+    { href: "/logwork", label: "Log Work" },
   ];
   if (user.role === "admin") {
     nav.push({ href: "/admin", label: "Admin" });

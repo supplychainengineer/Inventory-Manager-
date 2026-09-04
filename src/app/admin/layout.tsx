@@ -1,5 +1,6 @@
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { requireAdmin } from "@/lib/session";
+import { isStockCountDue } from "@/lib/stock";
 
 const nav: NavItem[] = [
   { href: "/admin/inventory", label: "Inventory" },
@@ -19,8 +20,9 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAdmin();
+  const countDue = await isStockCountDue();
   return (
-    <AppShell user={user} nav={nav}>
+    <AppShell user={user} nav={nav} countDue={countDue}>
       {children}
     </AppShell>
   );

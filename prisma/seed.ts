@@ -162,7 +162,7 @@ async function main() {
   // count matches the current onHand values above.
   await prisma.stockCount.create({
     data: {
-      at: daysFromNow(-8),
+      at: daysFromNow(-15),
       countedById: staff.id,
       items: {
         create: [
@@ -178,7 +178,7 @@ async function main() {
   });
   await prisma.stockCount.create({
     data: {
-      at: daysFromNow(-1),
+      at: daysFromNow(-8),
       countedById: staff.id,
       items: {
         create: [

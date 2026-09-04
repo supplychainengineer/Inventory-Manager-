@@ -1,5 +1,6 @@
 import { AppShell, type NavItem } from "@/components/AppShell";
 import { requireUser } from "@/lib/session";
+import { isStockCountDue } from "@/lib/stock";
 
 export default async function PortalLayout({
   children,
@@ -7,6 +8,7 @@ export default async function PortalLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  const countDue = await isStockCountDue();
 
   const nav: NavItem[] = [
     { href: "/catalog", label: "Catalog" },
@@ -18,7 +20,7 @@ export default async function PortalLayout({
   }
 
   return (
-    <AppShell user={user} nav={nav}>
+    <AppShell user={user} nav={nav} countDue={countDue}>
       {children}
     </AppShell>
   );

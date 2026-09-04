@@ -1,6 +1,21 @@
 import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
+/** A weekly count is considered due after this many days. */
+export const COUNT_DUE_DAYS = 7;
+
+/** True when there is no stock count yet, or the latest one is a week+ old. */
+export async function isStockCountDue(): Promise<boolean> {
+  const latest = await prisma.stockCount.findFirst({
+    orderBy: { at: "desc" },
+    select: { at: true },
+  });
+  if (!latest) return true;
+  const ageDays = (Date.now() - latest.at.getTime()) / 86_400_000;
+  return ageDays >= COUNT_DUE_DAYS;
+}
 
 /**
  * Applies a stock movement inside a transaction: adjusts a product's on-hand

@@ -140,32 +140,28 @@ curl -X POST http://localhost:3000/api/cron/reminders \
 - **CSV export** — `GET /api/admin/export` streams all purchase orders as CSV.
 - **Settings** (`/admin/settings`) — reminder recipients and the default inventory buffer.
 
-### Consumption-based inventory (BOM)
+### Weekly stock count
 
-Instead of counting SKUs daily, the team logs the procedures they performed and
-stock is deducted automatically from each procedure's bill of materials.
+Stock is kept current by a simple weekly count — no SKU-level tracking.
 
-- **Procedures & BOM** (`/admin/procedures`, admin) — define, per procedure, how
-  many pieces of each product it consumes (e.g. *Composite Filling = 2 gloves +
-  1 composite application + 1 bonding application*).
-- **Log Work** (`/logwork`, staff + admin) — enter "we did N of procedure X" and
-  the BOM quantities are deducted from on-hand stock in one transaction. Remote
-  team members can do this without touching SKUs.
-- **Inventory Analysis** (`/admin/inventory`, admin) — the founder's view: live
-  on-hand per item shown as an **estimate range** (±the product's buffer),
-  days-of-cover from recent burn rate, and an **OK / Low / Reorder** status
-  computed off the *conservative* end of the estimate so reorders fire early.
-  One-click **Reorder** raises a pending request; **Set count** corrects drift.
+- **Stock Count** (`/stock-count`, staff + admin) — practice staff enter how many
+  **boxes** of each product they have on the shelf and submit. The submission
+  becomes the on-hand truth for everyone, is saved as a `StockCount` snapshot,
+  and writes ledger entries for the deltas. On-hand is measured in whole boxes
+  (the countable `unit`: box / kit / case…).
+- **Inventory Analysis** (`/admin/inventory`, admin) — the founder's view: on-hand
+  per item shown as an **estimate range** (±the product's buffer), **used last
+  week** and **weeks of cover** derived from consecutive counts, and an
+  **OK / Low / Reorder** status computed off the *conservative* end of the
+  estimate so reorders fire early. One-click **Reorder** raises a pending
+  request; **Adjust** makes a quick correction between counts.
 - **Margin of error** — each product has a `bufferPct` (falling back to the
   global default in Settings). It both widens the displayed estimate range and
-  pulls low-stock alerts earlier, giving breathing room since not every SKU is
-  counted.
-- **Stock ledger** — receiving an approved order adds `qty × packSize` pieces
-  back to stock; every movement (received / procedure / count) is recorded in
-  `StockTxn` and shown under recent movements.
-
-Units: `onHand` and `reorderPoint` are in a product's base `unit` (pieces);
-`packSize` converts an ordered pack back into pieces on receipt.
+  pulls low-stock alerts earlier, giving breathing room since counts are weekly
+  snapshots, not live tracking.
+- **Stock ledger** — receiving an approved order adds `qty` boxes back to stock;
+  every movement (received / count / adjustment) is recorded in `StockTxn` and
+  shown under recent movements.
 
 ## Email
 

@@ -1,5 +1,5 @@
-// Consumption-based inventory math. Pure functions so they're easy to test and
-// safe to use from server components and actions alike.
+// Weekly-count inventory math. Pure functions so they're easy to test and safe
+// to use from server components and actions alike. On-hand is measured in BOXES.
 
 export const DEFAULT_BUFFER_PCT = 10;
 
@@ -7,7 +7,6 @@ export interface StockLike {
   onHand: number;
   reorderPoint: number;
   bufferPct: number | null;
-  packSize: number;
 }
 
 export function effectiveBuffer(p: Pick<StockLike, "bufferPct">, globalPct: number): number {
@@ -21,7 +20,7 @@ export interface EstRange {
   pct: number;
 }
 
-/** On-hand shown as an estimate range around the nominal count. */
+/** On-hand shown as an estimate range around the nominal box count. */
 export function estRange(p: StockLike, globalPct: number): EstRange {
   const pct = effectiveBuffer(p, globalPct);
   const b = pct / 100;
@@ -52,49 +51,39 @@ export function invStatus(p: StockLike, globalPct: number): StockStatus {
   return { key: "ok", label: "OK", rank: 3 };
 }
 
-export interface ProcedureWithBom {
-  id: string;
-  bom: { productId: string; qty: number }[];
-}
-export interface ProcedureLogLike {
-  procedureId: string;
-  count: number;
+export interface CountLike {
   at: Date | string;
+  items: { productId: string; boxes: number }[];
 }
 
-/** Average pieces/day consumed per product over the recent window. */
-export function burnByProduct(
-  procedures: ProcedureWithBom[],
-  logs: ProcedureLogLike[],
-  days = 14,
-): Map<string, number> {
-  const since = Date.now() - days * 86_400_000;
-  const bomByProc = new Map(procedures.map((p) => [p.id, p.bom]));
-  const totals = new Map<string, number>();
-  for (const log of logs) {
-    const at = typeof log.at === "string" ? new Date(log.at) : log.at;
-    if (at.getTime() < since) continue;
-    const bom = bomByProc.get(log.procedureId);
-    if (!bom) continue;
-    for (const line of bom) {
-      totals.set(line.productId, (totals.get(line.productId) ?? 0) + line.qty * log.count);
-    }
-  }
-  const perDay = new Map<string, number>();
-  for (const [productId, total] of totals) perDay.set(productId, total / days);
-  return perDay;
+/** Boxes of a product recorded in a given count, or null when absent. */
+function boxesIn(count: CountLike | undefined, productId: string): number | null {
+  const it = count?.items.find((i) => i.productId === productId);
+  return it ? it.boxes : null;
 }
 
-/** Days of cover from the conservative on-hand estimate and the daily burn. */
-export function coverageDays(estLow: number, burnPerDay: number): number | null {
-  if (burnPerDay <= 0) return null;
-  return estLow / burnPerDay;
+/**
+ * Boxes used since the previous weekly count (second-most-recent minus most
+ * recent), per product. Returns 0 when stock went up, null when there aren't two
+ * comparable counts. `counts` must be sorted newest-first.
+ */
+export function usedLastWeek(counts: CountLike[], productId: string): number | null {
+  if (counts.length < 2) return null;
+  const cur = boxesIn(counts[0], productId);
+  const prev = boxesIn(counts[1], productId);
+  if (cur == null || prev == null) return null;
+  return Math.max(0, prev - cur);
 }
 
-/** Suggested reorder quantity in whole packs to get back above 2× reorder point. */
-export function suggestedReorderPacks(p: StockLike, globalPct: number): number {
+/** Weeks of cover from the conservative on-hand estimate and weekly usage. */
+export function coverageWeeks(estLow: number, usedPerWeek: number | null): number | null {
+  if (usedPerWeek == null || usedPerWeek <= 0) return null;
+  return estLow / usedPerWeek;
+}
+
+/** Suggested reorder quantity in whole boxes to get back above 2× reorder point. */
+export function suggestedReorderBoxes(p: StockLike, globalPct: number): number {
   const { low } = estRange(p, globalPct);
   const target = (p.reorderPoint || 0) * 2;
-  const need = Math.max(p.packSize || 1, target - low);
-  return Math.max(1, Math.ceil(need / (p.packSize || 1)));
+  return Math.max(1, Math.ceil(target - low));
 }

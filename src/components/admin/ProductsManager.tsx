@@ -27,7 +27,6 @@ export interface ProductDTO {
   preferredVendorId: string | null;
   preferredVendorName: string | null;
   unit: string;
-  packSize: number;
   onHand: number;
   reorderPoint: number;
   bufferPct: number | null;
@@ -198,45 +197,35 @@ export function ProductsManager({
             </select>
           </div>
           <div className="mb-3 flex flex-wrap gap-2">
-            <div className="flex-1" style={{ minWidth: 110 }}>
-              <label className="field-label">Base unit</label>
+            <div className="flex-1" style={{ minWidth: 120 }}>
+              <label className="field-label">Unit label</label>
               <input
                 name="unit"
-                defaultValue={editing?.unit ?? ""}
-                placeholder="glove, kit…"
+                defaultValue={editing?.unit ?? "box"}
+                placeholder="box, kit, case…"
                 className="field-input"
               />
             </div>
             <div className="flex-1" style={{ minWidth: 110 }}>
-              <label className="field-label">Pack size</label>
+              <label className="field-label">On hand (boxes)</label>
               <input
-                name="packSize"
+                name="onHand"
                 type="number"
-                min={1}
-                defaultValue={editing?.packSize ?? 1}
+                min={0}
+                step={1}
+                defaultValue={editing?.onHand ?? 0}
                 className="field-input"
               />
             </div>
           </div>
           <div className="mb-4 flex flex-wrap gap-2">
-            <div className="flex-1" style={{ minWidth: 100 }}>
-              <label className="field-label">On hand</label>
-              <input
-                name="onHand"
-                type="number"
-                min={0}
-                step="0.01"
-                defaultValue={editing?.onHand ?? 0}
-                className="field-input"
-              />
-            </div>
-            <div className="flex-1" style={{ minWidth: 100 }}>
-              <label className="field-label">Reorder pt</label>
+            <div className="flex-1" style={{ minWidth: 120 }}>
+              <label className="field-label">Reorder pt (boxes)</label>
               <input
                 name="reorderPoint"
                 type="number"
                 min={0}
-                step="0.01"
+                step={1}
                 defaultValue={editing?.reorderPoint ?? 0}
                 className="field-input"
               />

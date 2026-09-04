@@ -18,7 +18,7 @@ import {
 import { parseInventoryFile } from "@/lib/inventory-import";
 import { buildImportPlan, commitImport, type ImportPlan } from "@/lib/inventory-plan";
 import { applyStock } from "@/lib/stock";
-import { suggestedReorderPacks } from "@/lib/inventory";
+import { suggestedReorderBoxes } from "@/lib/inventory";
 
 function revalidateAdmin() {
   revalidatePath("/admin");
@@ -280,7 +280,6 @@ const productSchema = z.object({
   category: z.string().min(1, "Category required"),
   preferredVendorId: z.string().optional().nullable(),
   unit: z.string().optional(),
-  packSize: z.coerce.number().int().positive().max(100000).optional(),
   onHand: z.coerce.number().nonnegative().optional(),
   reorderPoint: z.coerce.number().nonnegative().optional(),
   bufferPct: z.coerce.number().min(0).max(90).optional(),
@@ -292,7 +291,6 @@ function readProductForm(formData: FormData) {
     category: formData.get("category"),
     preferredVendorId: formData.get("preferredVendorId") || null,
     unit: formData.get("unit") || undefined,
-    packSize: formData.get("packSize") ?? undefined,
     onHand: formData.get("onHand") ?? undefined,
     reorderPoint: formData.get("reorderPoint") ?? undefined,
     bufferPct: formData.get("bufferPct") ?? undefined,
@@ -307,8 +305,7 @@ export async function createProduct(formData: FormData) {
       name: data.name,
       category: data.category,
       preferredVendorId: data.preferredVendorId || null,
-      unit: data.unit || "unit",
-      packSize: data.packSize ?? 1,
+      unit: data.unit || "box",
       onHand: data.onHand ?? 0,
       reorderPoint: data.reorderPoint ?? 0,
       bufferPct: data.bufferPct ?? null,
@@ -343,8 +340,7 @@ export async function updateProduct(formData: FormData) {
       name: data.name,
       category: data.category,
       preferredVendorId: data.preferredVendorId || null,
-      unit: data.unit || "unit",
-      packSize: data.packSize ?? 1,
+      unit: data.unit || "box",
       onHand: nextOnHand,
       reorderPoint: data.reorderPoint ?? 0,
       bufferPct: data.bufferPct ?? null,
@@ -567,83 +563,6 @@ export async function deleteVendorPricing(formData: FormData) {
 }
 
 // ---------------------------------------------------------------------------
-// Procedures & BOM
-// ---------------------------------------------------------------------------
-
-const bomSchema = z.array(
-  z.object({ productId: z.string().min(1), qty: z.coerce.number().positive() }),
-);
-const procedureSchema = z.object({
-  name: z.string().min(1, "Procedure name required"),
-  bom: bomSchema.min(1, "Add at least one material"),
-});
-
-function readProcedureForm(formData: FormData) {
-  let bomRaw: unknown = [];
-  try {
-    bomRaw = JSON.parse(String(formData.get("bom") || "[]"));
-  } catch {
-    throw new Error("Invalid BOM data");
-  }
-  return procedureSchema.parse({ name: formData.get("name"), bom: bomRaw });
-}
-
-export async function createProcedure(formData: FormData) {
-  const admin = await requireAdmin();
-  const data = readProcedureForm(formData);
-  const procedure = await prisma.procedure.create({
-    data: { name: data.name, bom: { create: data.bom } },
-  });
-  await logAudit({
-    actorId: admin.id,
-    action: "procedure.created",
-    details: `Created procedure ${procedure.name}`,
-  });
-  revalidatePath("/admin/procedures");
-  revalidatePath("/logwork");
-  return { ok: true };
-}
-
-export async function updateProcedure(formData: FormData) {
-  const admin = await requireAdmin();
-  const id = String(formData.get("id") || "");
-  if (!id) throw new Error("Missing procedure id");
-  const data = readProcedureForm(formData);
-  await prisma.$transaction(async (tx) => {
-    await tx.procedure.update({ where: { id }, data: { name: data.name } });
-    await tx.bomItem.deleteMany({ where: { procedureId: id } });
-    await tx.bomItem.createMany({
-      data: data.bom.map((b) => ({ procedureId: id, productId: b.productId, qty: b.qty })),
-    });
-  });
-  await logAudit({
-    actorId: admin.id,
-    action: "procedure.updated",
-    details: `Updated procedure ${data.name}`,
-  });
-  revalidatePath("/admin/procedures");
-  revalidatePath("/logwork");
-  return { ok: true };
-}
-
-export async function deleteProcedure(formData: FormData) {
-  const admin = await requireAdmin();
-  const id = String(formData.get("id") || "");
-  if (!id) throw new Error("Missing procedure id");
-  const procedure = await prisma.procedure.findUnique({ where: { id } });
-  if (!procedure) throw new Error("Procedure not found");
-  await prisma.procedure.delete({ where: { id } });
-  await logAudit({
-    actorId: admin.id,
-    action: "procedure.deleted",
-    details: `Deleted procedure ${procedure.name}`,
-  });
-  revalidatePath("/admin/procedures");
-  revalidatePath("/logwork");
-  return { ok: true };
-}
-
-// ---------------------------------------------------------------------------
 // Stock adjustments & reorder
 // ---------------------------------------------------------------------------
 
@@ -677,19 +596,19 @@ export async function quickReorder(formData: FormData) {
   if (!product) throw new Error("Product not found");
 
   const globalPct = await getInventoryBufferPct();
-  const packs = suggestedReorderPacks(product, globalPct);
+  const boxes = suggestedReorderBoxes(product, globalPct);
 
   await prisma.request.create({
-    data: { productId, qty: packs, requestedById: admin.id, status: "pending" },
+    data: { productId, qty: boxes, requestedById: admin.id, status: "pending" },
   });
   await logAudit({
     actorId: admin.id,
     action: "request.created",
-    details: `${admin.name} reordered ${packs} pack(s) of ${product.name} (low stock)`,
+    details: `${admin.name} reordered ${boxes} ${product.unit}(es) of ${product.name} (low stock)`,
   });
   revalidatePath("/admin/inventory");
   revalidatePath("/admin/requests");
-  return { ok: true, packs };
+  return { ok: true, boxes };
 }
 
 export async function updateInventoryBuffer(formData: FormData) {

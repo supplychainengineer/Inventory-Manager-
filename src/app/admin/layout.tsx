@@ -3,8 +3,7 @@ import { requireAdmin } from "@/lib/session";
 
 const nav: NavItem[] = [
   { href: "/admin/inventory", label: "Inventory" },
-  { href: "/logwork", label: "Log Work" },
-  { href: "/admin/procedures", label: "Procedures" },
+  { href: "/stock-count", label: "Stock Count" },
   { href: "/admin", label: "Spend", exact: true },
   { href: "/admin/requests", label: "Requests" },
   { href: "/admin/awaiting", label: "Awaiting" },

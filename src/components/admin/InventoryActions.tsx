@@ -58,16 +58,15 @@ export function InventoryActions({
         }}
         className="btn-ghost text-muted hover:text-accent"
       >
-        Set count
+        Adjust
       </button>
 
-      <Modal open={countOpen} onClose={() => setCountOpen(false)} title={`Set stock count — ${name}`}>
+      <Modal open={countOpen} onClose={() => setCountOpen(false)} title={`Adjust stock — ${name}`}>
         <form onSubmit={saveCount}>
           <p className="mb-3 text-sm text-muted">
-            Enter the actual counted quantity (in {unit}). This corrects any drift that built up
-            from consumption estimates.
+            Quick correction between weekly counts. Enter the number of boxes on hand.
           </p>
-          <label className="field-label">On hand ({unit})</label>
+          <label className="field-label">On hand ({unit}es)</label>
           <input
             type="number"
             min={0}

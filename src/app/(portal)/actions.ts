@@ -67,8 +67,8 @@ export async function markReceived(formData: FormData) {
     throw new Error("Only ordered requests can be marked received");
   }
 
-  // Receiving replenishes stock: qty is in packs, converted to base units.
-  const pieces = request.qty * (request.product.packSize || 1);
+  // Receiving replenishes stock: qty is the number of boxes ordered.
+  const boxes = request.qty;
 
   await prisma.$transaction(async (tx) => {
     await tx.request.update({
@@ -81,12 +81,12 @@ export async function markReceived(formData: FormData) {
         reminderSentAt: request.reminderSentAt ?? new Date(),
       },
     });
-    await applyStock(tx, request.productId, pieces, "received", request.id);
+    await applyStock(tx, request.productId, boxes, "received", request.id);
     await logAudit(
       {
         actorId: user.id,
         action: "request.received",
-        details: `${user.name} received ${request.qty} × ${request.product.name} → +${pieces} ${request.product.unit} to stock`,
+        details: `${user.name} received ${request.qty} × ${request.product.name} → +${boxes} ${request.product.unit} to stock`,
       },
       tx,
     );
@@ -99,48 +99,59 @@ export async function markReceived(formData: FormData) {
   return { ok: true };
 }
 
-const logProcedureSchema = z.object({
-  procedureId: z.string().min(1),
-  count: z.coerce.number().int().positive().max(10000),
+const stockCountSchema = z.object({
+  // JSON array of { productId, boxes } — one line per product the staff counted.
+  items: z
+    .array(z.object({ productId: z.string().min(1), boxes: z.coerce.number().nonnegative().max(100000) }))
+    .min(1, "Enter at least one count"),
 });
 
-/** Records that a procedure was performed and auto-deducts its BOM from stock. */
-export async function logProcedure(formData: FormData) {
+/**
+ * Practice staff submit a weekly stock count: the number of boxes on hand for
+ * each product. The submission becomes the on-hand truth, records a StockCount
+ * snapshot, and writes ledger entries for the deltas.
+ */
+export async function submitStockCount(formData: FormData) {
   const user = await requireUser();
-  const parsed = logProcedureSchema.safeParse({
-    procedureId: formData.get("procedureId"),
-    count: formData.get("count"),
-  });
-  if (!parsed.success) throw new Error("Invalid procedure log input");
 
-  const procedure = await prisma.procedure.findUnique({
-    where: { id: parsed.data.procedureId },
-    include: { bom: true },
-  });
-  if (!procedure) throw new Error("Procedure not found");
+  let itemsRaw: unknown = [];
+  try {
+    itemsRaw = JSON.parse(String(formData.get("items") || "[]"));
+  } catch {
+    throw new Error("Invalid stock count data");
+  }
+  const parsed = stockCountSchema.safeParse({ items: itemsRaw });
+  if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Invalid stock count");
+
+  // Only accept lines for real products.
+  const products = await prisma.product.findMany({ select: { id: true, onHand: true } });
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const items = parsed.data.items.filter((i) => byId.has(i.productId));
+  if (items.length === 0) throw new Error("No valid products in the count");
 
   await prisma.$transaction(async (tx) => {
-    await tx.procedureLog.create({
+    await tx.stockCount.create({
       data: {
-        procedureId: procedure.id,
-        count: parsed.data.count,
-        loggedById: user.id,
+        countedById: user.id,
+        items: { create: items.map((i) => ({ productId: i.productId, boxes: i.boxes })) },
       },
     });
-    for (const line of procedure.bom) {
-      await applyStock(tx, line.productId, -(line.qty * parsed.data.count), "procedure", procedure.name);
+    for (const i of items) {
+      const current = byId.get(i.productId)!.onHand;
+      const delta = i.boxes - current;
+      if (delta !== 0) await applyStock(tx, i.productId, delta, "count", "weekly count");
     }
     await logAudit(
       {
         actorId: user.id,
-        action: "procedure.logged",
-        details: `${user.name} logged ${parsed.data.count} × ${procedure.name} (auto-deducted ${procedure.bom.length} material(s))`,
+        action: "stock.counted",
+        details: `${user.name} submitted a weekly stock count (${items.length} items)`,
       },
       tx,
     );
   });
 
-  revalidatePath("/logwork");
+  revalidatePath("/stock-count");
   revalidatePath("/admin/inventory");
   return { ok: true };
 }

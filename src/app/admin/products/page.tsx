@@ -24,7 +24,6 @@ export default async function AdminProductsPage() {
     preferredVendorId: p.preferredVendorId,
     preferredVendorName: p.preferredVendor?.name ?? null,
     unit: p.unit,
-    packSize: p.packSize,
     onHand: p.onHand,
     reorderPoint: p.reorderPoint,
     bufferPct: p.bufferPct,

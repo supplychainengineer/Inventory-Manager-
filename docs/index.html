@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body>
+<title>Asana Ortho Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    --accent:#14857a; --accent-hover:#0f6f66; --accent-soft:#dcefec;
+    --paper:#eef2f1; --ink:#253138; --muted:#6d7c81; --white:#ffffff;
+    --line:#dbe3e2; --hairline:#dbe3e2;
+    --ok:#2f9e6b; --ok-soft:#e4f3ec; --warn:#bd7d2a; --warn-soft:#f7edda;
+    --alert:#d9534f; --alert-soft:#f8e6e4;
+    --radius:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:"Archivo",system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased; font-size:14px; line-height:1.5;
+  }
+  a{color:inherit}
+  button{font-family:inherit}
+  h1,h2,h3,p{margin:0}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* Buttons — calm, rounded, flush-left labels */
+  .btn{display:inline-flex;align-items:center;justify-content:flex-start;gap:.4rem;
+    border:1px solid var(--hairline);border-radius:var(--radius);padding:.5rem 1rem;font-size:.8rem;font-weight:600;
+    letter-spacing:.02em;cursor:pointer;transition:background .12s,color .12s,border-color .12s;
+    background:var(--white);color:var(--ink)}
+  .btn:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
+  .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 1px 2px rgba(37,49,56,.08)}
+  .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+  .btn-secondary:hover{background:var(--paper)}
+  .btn-danger{border-color:var(--alert);color:var(--alert)}
+  .btn-danger:hover{background:var(--alert);color:#fff}
+  .btn-sm{padding:.3rem .6rem;font-size:.7rem}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .link{border:0;background:none;padding:.2rem .3rem;color:var(--accent);font-weight:700;
+    font-size:.78rem;text-transform:uppercase;letter-spacing:.02em;cursor:pointer}
+  .link:hover{text-decoration:underline}
+  .link-muted{color:var(--muted)}
+  .link-muted:hover{color:var(--accent)}
+
+  .input,select.input,textarea.input{width:100%;border:1px solid var(--hairline);border-radius:var(--radius);background:var(--white);
+    padding:.5rem .6rem;font-size:.85rem;font-family:inherit;color:var(--ink);outline:none;transition:border-color .12s,box-shadow .12s}
+  .input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .label{display:block;margin-bottom:.25rem;font-size:.68rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--muted);text-align:left}
+
+  .card{border:1px solid var(--hairline);border-radius:12px;background:var(--white);overflow:hidden;
+    box-shadow:0 1px 2px rgba(37,49,56,.05),0 4px 12px rgba(37,49,56,.05)}
+
+  /* Data tables */
+  .tw{overflow-x:auto}
+  table.dt{width:100%;border-collapse:collapse;text-align:left;font-size:.83rem}
+  table.dt thead th{background:var(--paper);color:var(--muted);font-size:.66rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.05em;padding:.55rem .6rem;text-align:left;white-space:nowrap;
+    border-bottom:1px solid var(--hairline)}
+  table.dt tbody td{padding:.6rem .6rem;border-bottom:1px solid var(--hairline);vertical-align:middle}
+  table.dt tbody tr:last-child td{border-bottom:0}
+  table.dt tbody tr:hover{background:var(--paper)}
+  .r{text-align:right}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.72rem}
+
+  .badge{display:inline-block;border:1px solid;border-radius:999px;padding:.08rem .5rem;font-size:.62rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  .b-pending{border-color:var(--hairline);background:var(--paper);color:var(--muted)}
+  .b-ordered{border-color:var(--accent-soft);background:var(--accent-soft);color:var(--accent)}
+  .b-received{border-color:var(--ok-soft);background:var(--ok-soft);color:var(--ok)}
+  .b-rejected{border-color:var(--hairline);background:var(--paper);color:var(--muted);text-decoration:line-through}
+  .b-overdue{border-color:var(--alert-soft);background:var(--alert-soft);color:var(--alert)}
+  .b-new{border-color:var(--ok-soft);background:var(--ok-soft);color:var(--ok)}
+  .b-update{border-color:var(--hairline);background:var(--paper);color:var(--muted)}
+  .b-ok{border-color:var(--ok-soft);background:var(--ok-soft);color:var(--ok)}
+  .b-warn{border-color:var(--warn-soft);background:var(--warn-soft);color:var(--warn)}
+  .b-crit{border-color:var(--alert-soft);background:var(--alert-soft);color:var(--alert)}
+  .estsub{font-size:.66rem;color:var(--muted)}
+  .bomline{display:inline-block;border:1px solid var(--hairline);padding:.05rem .35rem;margin:0 .2rem .2rem 0;font-size:.68rem}
+
+  /* Header / nav */
+  header.app{border-bottom:1px solid var(--hairline);background:var(--white)}
+  .hwrap{max-width:1120px;margin:0 auto;padding:.7rem 1.25rem;display:flex;align-items:center;
+    gap:1rem;flex-wrap:wrap}
+  .brand{display:flex;flex-direction:column;line-height:1.05;text-decoration:none}
+  .brand .eyebrow{font-size:.6rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+  .brand .name{font-size:1rem;font-weight:800}
+  .hamburger{display:none;width:40px;height:40px;border:1px solid var(--hairline);background:#fff;cursor:pointer;
+    flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:none}
+  .hamburger span{display:block;width:20px;height:2px;background:var(--ink)}
+  .due-banner{display:block;background:var(--accent);color:#fff;border-bottom:1px solid var(--hairline);text-decoration:none;cursor:pointer}
+  .due-banner .inner{max-width:1120px;margin:0 auto;padding:.5rem 1.25rem;display:flex;align-items:center;
+    justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+  .due-banner .cta{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;text-decoration:underline}
+  nav.main{display:flex;gap:1.1rem;flex-wrap:wrap}
+  nav.main button{border:0;background:none;padding:.1rem 0 .25rem;font-size:.78rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.03em;color:var(--ink);cursor:pointer;border-bottom:2px solid transparent}
+  nav.main button:hover{color:var(--accent)}
+  nav.main button.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .userbox{display:flex;align-items:center;gap:.9rem;margin-left:auto}
+  .userbox .u{ text-align:right;line-height:1.1}
+  .userbox .u .n{font-size:.82rem;font-weight:700}
+  .userbox .u .role{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent)}
+
+  main.wrap{max-width:1120px;margin:0 auto;padding:1.75rem 1.25rem 4rem}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+    border-bottom:1px solid var(--hairline);padding-bottom:.9rem;margin-bottom:1.4rem}
+  .page-head h1{font-size:1.5rem;font-weight:800;letter-spacing:-.01em}
+  .page-head p{margin-top:.25rem;font-size:.82rem;color:var(--muted);max-width:60ch}
+  .head-actions{display:flex;gap:.6rem;flex-wrap:wrap}
+
+  .section-title{border-bottom:1px solid var(--hairline);background:var(--paper);padding:.45rem .75rem;
+    font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;border:1px solid var(--hairline);background:var(--hairline);border-radius:12px;overflow:hidden;margin-bottom:1.75rem}
+  .kpi{background:var(--white);padding:.9rem 1rem}
+  .kpi .k{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .kpi .v{margin-top:.15rem;font-size:1.55rem;font-weight:800}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+  .bar{height:6px;background:var(--paper);margin-top:.3rem}
+  .bar span{display:block;height:6px;background:var(--accent)}
+
+  /* Toast */
+  #toasts{position:fixed;right:1rem;bottom:1rem;display:flex;flex-direction:column;gap:.5rem;z-index:80;max-width:340px}
+  .toast{border:1px solid var(--hairline);border-radius:10px;background:var(--white);box-shadow:0 4px 16px rgba(26,26,26,.14);
+    padding:.6rem .75rem;font-size:.8rem;display:flex;gap:.5rem;align-items:flex-start}
+  .toast .dot{width:9px;height:9px;background:var(--accent);margin-top:.3rem;flex:none}
+  .toast.ok .dot{background:var(--ok)}
+
+  /* Modal */
+  #modal{position:fixed;inset:0;background:rgba(26,26,26,.42);display:none;align-items:flex-start;justify-content:center;
+    padding:1.5rem;overflow-y:auto;z-index:70}
+  #modal.open{display:flex}
+  .sheet{width:100%;max-width:560px;border:1px solid var(--hairline);border-radius:12px;background:var(--white);box-shadow:0 4px 22px rgba(26,26,26,.2);margin-top:2rem}
+  .sheet.wide{max-width:720px}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--hairline);padding:.75rem 1rem}
+  .sheet-head h2{font-size:.8rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .sheet-head .x{border:0;background:none;font-size:1.3rem;line-height:1;color:var(--muted);cursor:pointer}
+  .sheet-head .x:hover{color:var(--accent)}
+  .sheet-body{padding:1rem}
+  .form-row{margin-bottom:.8rem}
+  .row-flex{display:flex;gap:.6rem;flex-wrap:wrap}
+
+  .notice{border:2px solid var(--accent);background:var(--accent-soft);color:var(--accent);padding:.55rem .7rem;font-size:.8rem;font-weight:600}
+  .notice-ok{border-color:var(--ok);background:#e7f3ea;color:var(--ok)}
+  .muted{color:var(--muted)}
+  .empty{padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem}
+  .qty{width:56px;border:1px solid var(--hairline);border-radius:6px;padding:.25rem .35rem;font-size:.8rem;font-family:inherit;text-align:center}
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;border:1px solid var(--hairline);background:var(--hairline);border-radius:12px;overflow:hidden;margin-bottom:1rem}
+  .stat{background:#fff;padding:.6rem .7rem}
+  .stat .k{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .stat .v{font-size:1.15rem;font-weight:800}
+
+  /* Login */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.25rem}
+  .login-card{width:100%;max-width:380px}
+  .login-head{border-bottom:1px solid var(--hairline);padding:1.1rem 1.5rem}
+  .login-body{padding:1.4rem 1.5rem}
+  .quick{display:flex;gap:.6rem;margin-top:1rem}
+  .quick .btn{flex:1;justify-content:center}
+  .login-foot{border-top:1px solid var(--hairline);padding:.9rem 1.5rem;font-size:.72rem;color:var(--muted)}
+  .demo-ribbon{background:var(--ink);color:#fff;text-align:center;font-size:.66rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:.12em;padding:.3rem}
+  .demo-ribbon b{color:var(--accent)}
+
+  @media(max-width:820px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .stat-row{grid-template-columns:repeat(3,1fr)}
+  }
+  @media(max-width:760px){
+    .hamburger{display:flex}
+    .brand{flex:1}
+    nav.main{display:none;order:3;width:100%;gap:0;flex-direction:column}
+    nav.main.open{display:flex}
+    nav.main.open button{padding:.7rem 0;border-bottom:1px solid rgba(26,26,26,.12);text-align:left;width:100%}
+    .userbox{display:none;order:4;width:100%;margin-left:0}
+    .userbox.open{display:flex;justify-content:space-between;border-top:1px solid var(--hairline);padding-top:.6rem}
+    .wrap{padding:1.25rem 1rem 3rem}
+    .page-head{flex-direction:column;align-items:flex-start}
+    .head-actions{flex-wrap:wrap}
+  }
+  @media(max-width:560px){
+    .page-head h1{font-size:1.25rem}
+  }
+</style>
+
+<div class="demo-ribbon">Interactive demo · <b>mock data</b> · resets in your browser</div>
+<div id="app"></div>
+<div id="modal" aria-hidden="true"></div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- helpers -------------------------------------------------------------
+  const $ = (s,el=document)=>el.querySelector(s);
+  const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const money = n => (Number(n)||0).toLocaleString("en-US",{style:"currency",currency:"USD"});
+  const fmtDate = d => d? new Date(d).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"}) : "—";
+  const fmtDT = d => d? new Date(d).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}) : "—";
+  const daysFromNow = n => { const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString(); };
+  const startOfDay = d => { const x=new Date(d); x.setHours(0,0,0,0); return x.getTime(); };
+  const isOverdue = due => due && startOfDay(due) < startOfDay(new Date());
+  const po = id => "PO-"+String(id).toUpperCase();
+  let _seq = 100;
+  const nid = p => p+(++_seq);
+
+  // ---- seed ----------------------------------------------------------------
+  function seed(){
+    const vendors=[
+      {id:"v1",name:"Henry Schein Dental",contact:"Marcy Lin, Account Rep",email:"orders@henryschein.example.com"},
+      {id:"v2",name:"Patterson Dental",contact:"Devon Ospina, Account Rep",email:"orders@patterson.example.com"},
+      {id:"v3",name:"Benco Dental",contact:"Priya Raman, Account Rep",email:"orders@benco.example.com"},
+    ];
+    // onHand + reorderPoint are in BOXES (whole packs the staff can count).
+    // bufferPct = per-product margin of error. Stock is kept current by a weekly
+    // count that practice staff submit.
+    const products=[
+      {id:"p1",name:"Nitrile Exam Gloves (Box of 200)",category:"Consumables",preferredVendorId:"v2",unit:"box",onHand:4,reorderPoint:2,bufferPct:10},
+      {id:"p2",name:"Composite Resin Kit — A2 Shade",category:"Restorative",preferredVendorId:"v3",unit:"kit",onHand:7,reorderPoint:3,bufferPct:10},
+      {id:"p3",name:"Self-Ligating Ortho Brackets (Case)",category:"Ortho Supplies",preferredVendorId:"v3",unit:"case",onHand:2,reorderPoint:2,bufferPct:15},
+      {id:"p4",name:"Alginate Impression Material (1lb)",category:"Impression",preferredVendorId:"v1",unit:"tub",onHand:4,reorderPoint:3,bufferPct:12},
+      {id:"p5",name:"Self-Seal Sterilization Pouches (Box of 200)",category:"Sterilization",preferredVendorId:"v2",unit:"box",onHand:6,reorderPoint:3,bufferPct:10},
+      {id:"p6",name:"Universal Bonding Agent (5ml)",category:"Restorative",preferredVendorId:"v3",unit:"bottle",onHand:6,reorderPoint:3,bufferPct:12},
+    ];
+    const stockTxns=[];
+    // Weekly stock counts (most recent first). Each is a snapshot of boxes on
+    // hand per product, submitted by practice staff. The latest count sets the
+    // current on-hand; comparing the last two gives a "used last week" figure.
+    const stockCounts=[
+      {id:"sc1",at:daysFromNow(-8),countedById:"u_staff",items:[
+        {productId:"p1",boxes:4},{productId:"p2",boxes:7},{productId:"p3",boxes:2},
+        {productId:"p4",boxes:4},{productId:"p5",boxes:6},{productId:"p6",boxes:6}]},
+      {id:"sc0",at:daysFromNow(-15),countedById:"u_staff",items:[
+        {productId:"p1",boxes:6},{productId:"p2",boxes:9},{productId:"p3",boxes:4},
+        {productId:"p4",boxes:6},{productId:"p5",boxes:8},{productId:"p6",boxes:7}]},
+    ];
+    const pricing=[
+      {id:"pr1",productId:"p1",vendorId:"v1",price:12.5,deliveryDays:3},
+      {id:"pr2",productId:"p1",vendorId:"v2",price:11.95,deliveryDays:5},
+      {id:"pr3",productId:"p2",vendorId:"v1",price:89,deliveryDays:4},
+      {id:"pr4",productId:"p2",vendorId:"v3",price:84.5,deliveryDays:6},
+      {id:"pr5",productId:"p3",vendorId:"v2",price:245,deliveryDays:7},
+      {id:"pr6",productId:"p3",vendorId:"v3",price:239,deliveryDays:8},
+      {id:"pr7",productId:"p4",vendorId:"v1",price:18.75,deliveryDays:3},
+      {id:"pr8",productId:"p5",vendorId:"v2",price:22,deliveryDays:4},
+      {id:"pr9",productId:"p5",vendorId:"v1",price:23.5,deliveryDays:2},
+      {id:"pr10",productId:"p6",vendorId:"v3",price:64,deliveryDays:5},
+      {id:"pr11",productId:"p6",vendorId:"v1",price:66.5,deliveryDays:3},
+    ];
+    const users=[
+      {id:"u_admin",name:"Dr. Alina Reyes",email:"admin@asanaortho.com",role:"admin"},
+      {id:"u_staff",name:"Jordan Blake",email:"staff@asanaortho.com",role:"staff"},
+    ];
+    const requests=[
+      {id:"r1",productId:"p1",qty:10,requestedById:"u_staff",requestedAt:daysFromNow(0),status:"pending",reminderSent:false},
+      {id:"r2",productId:"p5",qty:6,requestedById:"u_staff",requestedAt:daysFromNow(-1),status:"ordered",vendorId:"v2",price:22,deliveryDays:4,orderedAt:daysFromNow(-1),dueDate:daysFromNow(3),reminderSent:false},
+      {id:"r3",productId:"p3",qty:2,requestedById:"u_staff",requestedAt:daysFromNow(-12),status:"ordered",vendorId:"v3",price:239,deliveryDays:8,orderedAt:daysFromNow(-12),dueDate:daysFromNow(-4),reminderSent:false},
+      {id:"r4",productId:"p2",qty:3,requestedById:"u_staff",requestedAt:daysFromNow(-20),status:"received",vendorId:"v3",price:84.5,deliveryDays:6,orderedAt:daysFromNow(-20),dueDate:daysFromNow(-14),receivedAt:daysFromNow(-15),reminderSent:false},
+      {id:"r5",productId:"p6",qty:25,requestedById:"u_staff",requestedAt:daysFromNow(-3),status:"rejected",reminderSent:false},
+    ];
+    const audit=[{id:nid("a"),at:daysFromNow(0),actorId:"u_admin",action:"seed.init",details:"Demo data loaded"}];
+    const settings={recipientEmails:["admin@asanaortho.com","frontdesk@asanaortho.com"],inventoryBufferPct:10};
+    return {vendors,products,pricing,users,requests,stockCounts,stockTxns,audit,settings,sessionUserId:null};
+  }
+
+  // ---- state / persistence -------------------------------------------------
+  const KEY="asana-ortho-demo-v4";
+  let S;
+  function load(){
+    try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}
+    S=seed();
+  }
+  function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+  function resetDemo(){ S=seed(); save(); view="login"; render(); toast("Demo data reset","ok"); }
+
+  // lookups
+  const vById = id => S.vendors.find(v=>v.id===id);
+  const pById = id => S.products.find(p=>p.id===id);
+  const uById = id => S.users.find(u=>u.id===id);
+  const pricingFor = pid => S.pricing.filter(pr=>pr.productId===pid);
+  const preferredPricing = prod => S.pricing.find(pr=>pr.productId===prod.id && pr.vendorId===prod.preferredVendorId) || null;
+  const me = () => uById(S.sessionUserId);
+  // Stock counts sorted newest-first.
+  const countsSorted = () => S.stockCounts.slice().sort((a,b)=>new Date(b.at)-new Date(a.at));
+  const boxesInCount = (count,pid) => { const it=count?.items.find(i=>i.productId===pid); return it?it.boxes:null; };
+
+  // ---- inventory math ------------------------------------------------------
+  const pbuffer = p => (p.bufferPct==null ? (S.settings.inventoryBufferPct??10) : p.bufferPct);
+  function estRange(p){ const b=pbuffer(p)/100; return {nom:p.onHand||0, low:Math.max(0,(p.onHand||0)*(1-b)), high:(p.onHand||0)*(1+b), pct:pbuffer(p)}; }
+  function invStatus(p){
+    const {low}=estRange(p); const rp=p.reorderPoint||0;
+    if(low<=0) return {k:"out",label:"Out (est.)",cls:"b-crit",rank:0};
+    if(low<=rp) return {k:"reorder",label:"Reorder",cls:"b-crit",rank:1};
+    if(low<=rp*1.5) return {k:"low",label:"Low",cls:"b-warn",rank:2};
+    return {k:"ok",label:"OK",cls:"b-ok",rank:3};
+  }
+  // Boxes used since the previous weekly count (latest count minus the one
+  // before it). Returns null when there aren't two counts to compare.
+  function usedLastWeek(productId){
+    const cs=countsSorted(); if(cs.length<2) return null;
+    const cur=boxesInCount(cs[0],productId), prev=boxesInCount(cs[1],productId);
+    if(cur==null||prev==null) return null;
+    return Math.max(0, prev-cur);
+  }
+  const lastCountAt = () => { const cs=countsSorted(); return cs.length?cs[0].at:null; };
+  // A weekly count is "due" when there is none yet or the latest is 7+ days old.
+  function countDue(){ const cs=countsSorted(); if(!cs.length) return true; return (Date.now()-new Date(cs[0].at).getTime())/864e5 >= 7; }
+  // Weeks of cover from the conservative on-hand estimate and weekly usage.
+  function coverageWeeks(p){ const u=usedLastWeek(p.id); if(u==null||u<=0) return null; return estRange(p).low/u; }
+  function stockValue(p){ const pp=preferredPricing(p)||pricingFor(p.id)[0]; if(!pp) return 0; return (p.onHand||0)*Number(pp.price); }
+  function applyStock(productId,delta,reason,ref){
+    const p=pById(productId); if(!p) return;
+    p.onHand=Math.max(0, Math.round(((p.onHand||0)+delta)*1000)/1000);
+    S.stockTxns.unshift({id:nid("t"),at:new Date().toISOString(),productId,delta:Math.round(delta*1000)/1000,reason,ref:ref||null});
+  }
+  const fmtQty = n => { const r=Math.round(n*100)/100; return (Number.isInteger(r)?r:r.toFixed(2)); };
+
+  function logAudit(action,details){
+    S.audit.unshift({id:nid("a"),at:new Date().toISOString(),actorId:S.sessionUserId,action,details});
+  }
+
+  // ---- domain actions ------------------------------------------------------
+  function createRequest(pid,qty){
+    const prod=pById(pid);
+    S.requests.unshift({id:nid("r"),productId:pid,qty:qty,requestedById:S.sessionUserId,requestedAt:new Date().toISOString(),status:"pending",reminderSent:false});
+    logAudit("request.created",`${me().name} requested ${qty} × ${prod.name}`);
+    save(); toast(`Requested ${qty} × ${prod.name}`,"ok");
+  }
+  function markReceived(rid){
+    const r=S.requests.find(x=>x.id===rid); if(!r||r.status!=="ordered") return;
+    r.status="received"; r.receivedAt=new Date().toISOString(); r.reminderSent=true;
+    const prod=pById(r.productId);
+    applyStock(r.productId,r.qty,"received",po(r.id));
+    logAudit("request.received",`${me().name} received ${r.qty} × ${prod.name} → +${r.qty} ${prod.unit} to stock`);
+    save(); toast(`Received · +${r.qty} ${prod.unit} added to stock`,"ok"); render();
+  }
+  // Practice staff submit a weekly count: boxesById maps productId -> boxes.
+  function submitStockCount(boxesById){
+    const items=[];
+    S.products.forEach(p=>{
+      const raw=boxesById[p.id];
+      if(raw==null||raw==="") return; // leave untouched if blank
+      const boxes=Math.max(0,Number(raw)); if(isNaN(boxes)) return;
+      items.push({productId:p.id,boxes});
+      const delta=boxes-(p.onHand||0);
+      if(delta!==0) applyStock(p.id,delta,"count","weekly count");
+      else p.onHand=boxes;
+    });
+    if(!items.length){ toast("Enter at least one count"); return; }
+    S.stockCounts.unshift({id:nid("sc"),at:new Date().toISOString(),countedById:S.sessionUserId,items});
+    logAudit("stock.counted",`${me().name} submitted a weekly stock count (${items.length} items)`);
+    save(); toast(`Weekly count saved · ${items.length} items updated`,"ok"); render();
+  }
+  function setCount(productId,newCount){
+    const p=pById(productId); if(!p) return; newCount=Number(newCount); if(isNaN(newCount)||newCount<0) return;
+    const delta=newCount-(p.onHand||0); applyStock(productId,delta,"count","adjustment");
+    logAudit("stock.counted",`${me().name} set ${p.name} on-hand to ${fmtQty(newCount)} ${p.unit}`);
+    save(); toast(`${p.name} count updated`,"ok"); render();
+  }
+  function quickReorder(productId){
+    const p=pById(productId); if(!p) return;
+    const {low}=estRange(p); const target=(p.reorderPoint||0)*2;
+    const boxes=Math.max(1,Math.ceil(target-low));
+    S.requests.unshift({id:nid("r"),productId,qty:boxes,requestedById:S.sessionUserId,requestedAt:new Date().toISOString(),status:"pending",reminderSent:false});
+    logAudit("request.created",`${me().name} reordered ${boxes} ${p.unit}(es) of ${p.name} (low stock)`);
+    save(); toast(`Reorder raised · ${boxes} ${p.unit}(es) of ${p.name} → Requests`,"ok"); render();
+  }
+  function approveRequest(rid){
+    const r=S.requests.find(x=>x.id===rid); if(!r||r.status!=="pending") return;
+    const prod=pById(r.productId); const pp=preferredPricing(prod);
+    if(!pp){ toast("Set a preferred vendor with pricing first"); return; }
+    r.status="ordered"; r.vendorId=pp.vendorId; r.price=pp.price; r.deliveryDays=pp.deliveryDays;
+    r.orderedAt=new Date().toISOString();
+    r.dueDate=daysFromNow(pp.deliveryDays); r.reminderSent=false; r.reminderSentAt=null;
+    logAudit("request.approved",`${me().name} approved ${po(r.id)}: ${r.qty} × ${prod.name} from ${vById(pp.vendorId).name} @ ${money(pp.price)}`);
+    logAudit("po.email.sent",`PO email for ${po(r.id)} sent to ${vById(pp.vendorId).email} (simulated)`);
+    save(); toast(`Approved · PO emailed to ${vById(pp.vendorId).name}`,"ok"); render();
+  }
+  function rejectRequest(rid){
+    const r=S.requests.find(x=>x.id===rid); if(!r||r.status!=="pending") return;
+    r.status="rejected";
+    logAudit("request.rejected",`${me().name} rejected ${r.qty} × ${pById(r.productId).name}`);
+    save(); toast("Request rejected"); render();
+  }
+  function sendReminder(rid){
+    const r=S.requests.find(x=>x.id===rid); if(!r||r.status!=="ordered") return;
+    r.reminderSent=true; r.reminderSentAt=new Date().toISOString();
+    logAudit("reminder.sent.manual",`Reminder for ${po(r.id)} sent to ${S.settings.recipientEmails.join(", ")}`);
+    save(); toast(`Reminder emailed to ${S.settings.recipientEmails.length} recipient(s)`,"ok"); render();
+  }
+  function runReminderJob(){
+    const due=S.requests.filter(r=>r.status==="ordered" && !r.reminderSent && r.dueDate && startOfDay(r.dueDate)<=startOfDay(new Date()));
+    due.forEach(r=>{ r.reminderSent=true; r.reminderSentAt=new Date().toISOString();
+      logAudit("reminder.sent.auto",`Reminder for ${po(r.id)} (${r.qty} × ${pById(r.productId).name}) sent to ${S.settings.recipientEmails.join(", ")}`);});
+    save();
+    toast(`Daily job ran · checked ${due.length}, sent ${due.length}`, "ok"); render();
+  }
+
+  // ---- toast / modal -------------------------------------------------------
+  function toast(msg,kind){
+    const t=document.createElement("div"); t.className="toast"+(kind==="ok"?" ok":"");
+    t.innerHTML='<span class="dot"></span><span>'+esc(msg)+'</span>';
+    $("#toasts").appendChild(t);
+    setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .4s";setTimeout(()=>t.remove(),400);},2600);
+  }
+  function openModal(html){ const m=$("#modal"); m.innerHTML=html; m.classList.add("open"); m.setAttribute("aria-hidden","false"); }
+  function closeModal(){ const m=$("#modal"); m.classList.remove("open"); m.setAttribute("aria-hidden","true"); m.innerHTML=""; }
+  $("#modal").addEventListener("click",e=>{ if(e.target.id==="modal") closeModal(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+
+  // ---- routing -------------------------------------------------------------
+  let view="login";
+  let navOpen=false;
+  function nav(v){ view=v; navOpen=false; render(); window.scrollTo(0,0); }
+
+  const STAFF_NAV=[["catalog","Catalog"],["my-requests","My Requests"],["stockcount","Stock Count"]];
+  const ADMIN_NAV=[["inventory","Inventory"],["stockcount","Stock Count"],["dashboard","Spend"],["requests","Requests"],["awaiting","Awaiting"],["products","Products"],["vendors","Vendors"],["audit","Audit"],["settings","Settings"]];
+
+  function shell(inner){
+    const u=me(); const isAdmin=u.role==="admin";
+    const navItems = isAdmin ? ADMIN_NAV : STAFF_NAV;
+    const navHtml = navItems.map(([v,l])=>`<button data-nav="${v}" class="${view===v?"active":""}">${l}</button>`).join("");
+    const banner = countDue()
+      ? `<a class="due-banner" data-nav="stockcount"><div class="inner"><span>⚠ Weekly stock count is due</span><span class="cta">Start count →</span></div></a>`
+      : "";
+    return `
+      <header class="app"><div class="hwrap">
+        <a class="brand" data-nav="${isAdmin?"inventory":"catalog"}" href="#">
+          <span class="eyebrow">Asana Ortho</span><span class="name">Inventory Manager</span>
+        </a>
+        <button class="hamburger" data-act="togglenav" aria-label="Menu"><span></span><span></span><span></span></button>
+        <nav class="main ${navOpen?"open":""}">${navHtml}</nav>
+        <div class="userbox ${navOpen?"open":""}">
+          <div class="u"><span class="n">${esc(u.name)}</span><span class="role">${u.role}</span></div>
+          <button class="link link-muted" data-act="signout">Sign out</button>
+        </div>
+      </div></header>
+      ${banner}
+      <main class="wrap">${inner}</main>`;
+  }
+
+  function head(title,desc,actions){
+    return `<div class="page-head"><div><h1>${esc(title)}</h1>${desc?`<p>${esc(desc)}</p>`:""}</div>${actions?`<div class="head-actions">${actions}</div>`:""}</div>`;
+  }
+  function statusBadge(s){ return `<span class="badge b-${s}">${s.charAt(0).toUpperCase()+s.slice(1)}</span>`; }
+
+  // ---- views ---------------------------------------------------------------
+  function loginView(){
+    return `<div class="login-wrap"><div class="card login-card">
+      <div class="login-head"><span class="eyebrow" style="font-size:.6rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)">Asana Ortho</span>
+        <h1 style="font-size:1.35rem;font-weight:800;margin-top:.15rem">Inventory Manager</h1></div>
+      <div class="login-body">
+        <div class="form-row"><label class="label">Email</label><input class="input" id="lg-email" value="admin@asanaortho.com"></div>
+        <div class="form-row"><label class="label">Password</label><input class="input" id="lg-pass" type="password" value="password123"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" data-act="login">Sign in</button>
+        <div class="quick">
+          <button class="btn btn-secondary" data-act="quick" data-role="admin">Enter as Admin</button>
+          <button class="btn btn-secondary" data-act="quick" data-role="staff">Enter as Staff</button>
+        </div>
+      </div>
+      <div class="login-foot">Demo accounts · admin@asanaortho.com · staff@asanaortho.com · password123</div>
+    </div></div>`;
+  }
+
+  function catalogView(){
+    const cats={};
+    S.products.forEach(p=>{ (cats[p.category]=cats[p.category]||[]).push(p); });
+    const sections=Object.keys(cats).sort().map(cat=>{
+      const rows=cats[cat].map(p=>{
+        const pp=preferredPricing(p)||pricingFor(p.id)[0];
+        return `<tr>
+          <td style="font-weight:700">${esc(p.name)}</td>
+          <td>${esc(vById(p.preferredVendorId)?.name||"—")}</td>
+          <td class="r tnum">${pp?money(pp.price):"—"}</td>
+          <td class="r tnum">${pp?pp.deliveryDays+" day(s)":"—"}</td>
+          <td class="r"><div style="display:flex;gap:.4rem;justify-content:flex-end;align-items:center">
+            <input class="qty" type="number" min="1" value="1" data-qty="${p.id}">
+            <button class="btn btn-primary btn-sm" data-act="request" data-id="${p.id}">Request</button>
+          </div></td></tr>`;
+      }).join("");
+      return `<section class="card" style="margin-bottom:1.5rem">
+        <div class="section-title">${esc(cat)}</div>
+        <div class="tw"><table class="dt"><thead><tr>
+          <th>Product</th><th>Preferred Vendor</th><th class="r">Price</th><th class="r">Delivery</th><th class="r">Request</th>
+        </tr></thead><tbody>${rows}</tbody></table></div></section>`;
+    }).join("");
+    return head("Product Catalog","Browse consumables and supplies, then request items with a quantity.")+sections;
+  }
+
+  function myRequestsView(){
+    const mine=S.requests.filter(r=>r.requestedById===S.sessionUserId);
+    const rows=mine.map(r=>{
+      const overdue=r.status==="ordered"&&isOverdue(r.dueDate);
+      return `<tr>
+        <td style="font-weight:700">${esc(pById(r.productId).name)}</td>
+        <td class="r tnum">${r.qty}</td>
+        <td>${fmtDate(r.requestedAt)}</td>
+        <td><div style="display:flex;gap:.35rem;align-items:center">${statusBadge(r.status)}${overdue?'<span class="badge b-overdue">Overdue</span>':""}</div></td>
+        <td>${esc(vById(r.vendorId)?.name||"—")}</td>
+        <td>${r.status==="received"?"Received "+fmtDate(r.receivedAt):fmtDate(r.dueDate)}</td>
+        <td class="r">${r.status==="ordered"?`<button class="btn btn-primary btn-sm" data-act="receive" data-id="${r.id}">Mark Received</button>`:(r.price?`<span class="muted tnum">${money(r.price)} ea</span>`:'<span class="muted">—</span>')}</td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="7" class="empty">You haven't requested anything yet. Visit the catalog to start.</td></tr>`;
+    return head("My Requests","Track the status of items you've requested.")+
+      `<div class="card tw"><table class="dt"><thead><tr>
+        <th>Product</th><th class="r">Qty</th><th>Requested</th><th>Status</th><th>Vendor</th><th>Due</th><th class="r">Action</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function dashboardView(){
+    const orders=S.requests.filter(r=>r.status==="ordered"||r.status==="received");
+    let total=0; const byV={},byC={};
+    orders.forEach(o=>{ const lt=(Number(o.price)||0)*o.qty; total+=lt;
+      const vn=vById(o.vendorId)?.name||"Unassigned"; byV[vn]=(byV[vn]||0)+lt;
+      const cn=pById(o.productId).category; byC[cn]=(byC[cn]||0)+lt; });
+    const count=orders.length; const avg=count?total/count:0;
+    const pending=S.requests.filter(r=>r.status==="pending").length;
+    const awaiting=S.requests.filter(r=>r.status==="ordered").length;
+    const spendTable=(title,obj)=>{
+      const rows=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+      const max=rows[0]?rows[0][1]:0;
+      const body=rows.map(([n,v])=>`<tr>
+        <td style="font-weight:700">${esc(n)}<div class="bar"><span style="width:${max?(v/max*100):0}%"></span></div></td>
+        <td class="r tnum">${money(v)}</td><td class="r tnum">${total?Math.round(v/total*100)+"%":"—"}</td></tr>`).join("")
+        || `<tr><td colspan="3" class="empty">No spend recorded.</td></tr>`;
+      return `<section class="card"><div class="section-title">${title}</div>
+        <div class="tw"><table class="dt"><thead><tr><th>Name</th><th class="r">Spend</th><th class="r">Share</th></tr></thead>
+        <tbody>${body}</tbody></table></div></section>`;
+    };
+    return head("Budget & Spend","Spend across all approved purchase orders (ordered + received).",
+        `<button class="btn btn-secondary btn-sm" data-act="export">Export POs (CSV)</button>
+         <button class="btn btn-primary btn-sm" data-act="runjob">Run daily reminder job</button>`)+
+      `<div class="kpis">
+        <div class="kpi"><div class="k">Total Spend</div><div class="v tnum">${money(total)}</div></div>
+        <div class="kpi"><div class="k">Order Count</div><div class="v tnum">${count}</div></div>
+        <div class="kpi"><div class="k">Avg Order Value</div><div class="v tnum">${money(avg)}</div></div>
+        <div class="kpi"><div class="k">Pending / Awaiting</div><div class="v tnum">${pending} / ${awaiting}</div></div>
+      </div>
+      <div class="grid2">${spendTable("Spend by Vendor",byV)}${spendTable("Spend by Category",byC)}</div>`;
+  }
+
+  function pendingView(){
+    const pend=S.requests.filter(r=>r.status==="pending");
+    const rows=pend.map(r=>{
+      const prod=pById(r.productId); const pp=preferredPricing(prod);
+      const est=pp?pp.price*r.qty:null;
+      return `<tr>
+        <td>${fmtDate(r.requestedAt)}</td>
+        <td>${esc(uById(r.requestedById).name)}</td>
+        <td style="font-weight:700">${esc(prod.name)}</td>
+        <td class="r tnum">${r.qty}</td>
+        <td>${esc(vById(prod.preferredVendorId)?.name||"— none set —")}</td>
+        <td class="r tnum">${pp?money(pp.price)+" · "+pp.deliveryDays+"d":"—"}</td>
+        <td class="r tnum">${est!=null?money(est):"—"}</td>
+        <td class="r"><div style="display:flex;gap:.4rem;justify-content:flex-end">
+          <button class="btn btn-primary btn-sm" data-act="approve" data-id="${r.id}" ${pp?"":"disabled"} title="${pp?"Approve & send PO":"Set a preferred vendor with pricing first"}">Approve</button>
+          <button class="btn btn-danger btn-sm" data-act="reject" data-id="${r.id}">Reject</button>
+        </div></td></tr>`;
+    }).join("") || `<tr><td colspan="8" class="empty">No pending requests. All caught up.</td></tr>`;
+    return head("Pending Requests","Approve to snapshot the preferred vendor's price & delivery, send a PO, and start the delivery clock. Reject to decline.")+
+      `<div class="card tw"><table class="dt"><thead><tr>
+        <th>Requested</th><th>By</th><th>Product</th><th class="r">Qty</th><th>Preferred Vendor</th><th class="r">Unit / Delivery</th><th class="r">Est. Total</th><th class="r">Action</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function awaitingView(){
+    const ord=S.requests.filter(r=>r.status==="ordered").sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate));
+    const overdue=ord.filter(r=>isOverdue(r.dueDate)).length;
+    const openVal=ord.reduce((s,r)=>s+(Number(r.price)||0)*r.qty,0);
+    const rows=ord.map(r=>{
+      const od=isOverdue(r.dueDate);
+      return `<tr>
+        <td class="mono">${po(r.id)}</td>
+        <td style="font-weight:700">${esc(pById(r.productId).name)}</td>
+        <td class="r tnum">${r.qty}</td>
+        <td>${esc(vById(r.vendorId)?.name||"—")}</td>
+        <td>${fmtDate(r.orderedAt)}</td>
+        <td><div style="display:flex;gap:.35rem;align-items:center">${fmtDate(r.dueDate)}${od?'<span class="badge b-overdue">Overdue</span>':""}</div></td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="muted" style="font-size:.72rem">${r.reminderSent?"Sent "+fmtDate(r.reminderSentAt):"Not sent"}</td>
+        <td class="r"><button class="btn btn-secondary btn-sm" data-act="remind" data-id="${r.id}">Send reminder now</button></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="9" class="empty">Nothing awaiting delivery.</td></tr>`;
+    return head("Awaiting Delivery",`${ord.length} open order(s)${overdue?` — ${overdue} overdue`:""}. Send a reminder manually, or run the daily job.`,
+        `<button class="btn btn-primary btn-sm" data-act="runjob">Run daily reminder job</button>`)+
+      `<div class="card tw"><table class="dt"><thead><tr>
+        <th>PO</th><th>Product</th><th class="r">Qty</th><th>Vendor</th><th>Ordered</th><th>Due</th><th>Status</th><th>Reminder</th><th class="r">Action</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="muted" style="margin-top:.8rem;font-size:.78rem">Estimated open value: <b style="color:var(--ink)" class="tnum">${money(openVal)}</b></p>`;
+  }
+
+  function productsView(){
+    const rows=S.products.map(p=>{
+      const prc=pricingFor(p.id); const best=prc.length?Math.min(...prc.map(x=>x.price)):null;
+      return `<tr>
+        <td style="font-weight:700">${esc(p.name)}</td>
+        <td>${esc(p.category)}</td>
+        <td class="r tnum">${fmtQty(p.onHand||0)} <span class="muted">${esc(p.unit||"")}</span></td>
+        <td>${p.preferredVendorId?esc(vById(p.preferredVendorId).name):'<span style="color:var(--accent)">— none —</span>'}</td>
+        <td class="r tnum">${prc.length}</td>
+        <td class="r tnum">${best!=null?money(best):"—"}</td>
+        <td class="r"><div style="display:flex;gap:.7rem;justify-content:flex-end">
+          <button class="link" data-act="pricing" data-id="${p.id}">Pricing</button>
+          <button class="link" data-act="editprod" data-id="${p.id}">Edit</button>
+          <button class="link link-muted" data-act="delprod" data-id="${p.id}">Delete</button>
+        </div></td></tr>`;
+    }).join("") || `<tr><td colspan="7" class="empty">No products yet.</td></tr>`;
+    return head("Products","Manage the catalog, vendor pricing, and each product's preferred vendor.",
+        `<button class="btn btn-secondary btn-sm" data-act="import">Import from Excel</button>
+         <button class="btn btn-primary btn-sm" data-act="newprod">+ New Product</button>`)+
+      `<div class="card tw"><table class="dt"><thead><tr>
+        <th>Product</th><th>Category</th><th class="r">On hand</th><th>Preferred Vendor</th><th class="r">Vendors</th><th class="r">Best Price</th><th class="r">Actions</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function vendorsView(){
+    const rows=S.vendors.map(v=>{
+      const products=S.pricing.filter(pr=>pr.vendorId===v.id).length;
+      const orders=S.requests.filter(r=>r.vendorId===v.id).length;
+      return `<tr>
+        <td style="font-weight:700">${esc(v.name)}</td>
+        <td>${esc(v.contact||"—")}</td>
+        <td class="mono">${esc(v.email)}</td>
+        <td class="r tnum">${products}</td>
+        <td class="r tnum">${orders}</td>
+        <td class="r"><div style="display:flex;gap:.7rem;justify-content:flex-end">
+          <button class="link" data-act="editvendor" data-id="${v.id}">Edit</button>
+          <button class="link link-muted" data-act="delvendor" data-id="${v.id}">Delete</button>
+        </div></td></tr>`;
+    }).join("") || `<tr><td colspan="6" class="empty">No vendors yet.</td></tr>`;
+    return head("Vendors","Manage suppliers and the email address purchase orders are sent to.",
+        `<button class="btn btn-primary btn-sm" data-act="newvendor">+ New Vendor</button>`)+
+      `<div class="card tw"><table class="dt"><thead><tr>
+        <th>Vendor</th><th>Contact</th><th>Email</th><th class="r">Products</th><th class="r">Orders</th><th class="r">Actions</th>
+      </tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function auditView(){
+    const rows=S.audit.slice(0,250).map(l=>`<tr>
+      <td style="white-space:nowrap">${fmtDT(l.at)}</td>
+      <td>${esc(uById(l.actorId)?.name||"System")}</td>
+      <td class="mono">${esc(l.action)}</td>
+      <td class="muted">${esc(l.details||"—")}</td></tr>`).join("")
+      || `<tr><td colspan="4" class="empty">No activity recorded.</td></tr>`;
+    return head("Audit Log & Order History","Every action across the portal, timestamped.")+
+      `<div class="card tw"><table class="dt"><thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Details</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+  }
+
+  function settingsView(){
+    return head("Reminder Settings","These addresses receive automated due-delivery reminders and manual reminders.")+
+      `<section class="card" style="padding:1.25rem;max-width:560px">
+        <label class="label">Recipient emails (one per line or comma-separated)</label>
+        <textarea class="input mono" id="rec" rows="5">${esc(S.settings.recipientEmails.join("\\n"))}</textarea>
+        <div style="margin-top:.8rem"><button class="btn btn-primary" data-act="saverec">Save Recipients</button></div>
+      </section>
+      <section class="card" style="padding:1.25rem;margin-top:1.5rem">
+        <div class="section-title" style="margin:-1.25rem -1.25rem 1rem">How reminders work</div>
+        <ul style="margin:0;padding-left:1.1rem;color:var(--muted);font-size:.85rem;line-height:1.7">
+          <li>A daily job checks every <b>ordered</b> request whose due date has arrived and that hasn't already been reminded.</li>
+          <li>A reminder email goes to the recipients above with a link back to the request.</li>
+          <li>Once sent, the request is flagged so the reminder never repeats.</li>
+          <li>If a request is marked <b>received</b> first, no reminder is sent — the received check happens first.</li>
+        </ul>
+        <div style="margin-top:1rem"><button class="btn btn-secondary btn-sm" data-act="runjob">Run daily reminder job now</button></div>
+      </section>`;
+  }
+
+  function inventoryView(){
+    const prods=S.products.slice().sort((a,b)=>invStatus(a).rank-invStatus(b).rank || a.name.localeCompare(b.name));
+    const need=prods.filter(p=>invStatus(p).rank<=1).length;
+    const totalVal=prods.reduce((s,p)=>s+stockValue(p),0);
+    const lc=lastCountAt();
+    const rows=prods.map(p=>{
+      const st=invStatus(p); const er=estRange(p); const used=usedLastWeek(p.id); const cov=coverageWeeks(p);
+      return `<tr>
+        <td style="font-weight:700">${esc(p.name)}<div class="estsub">${esc(p.category)}</div></td>
+        <td class="r"><span class="tnum" style="font-weight:700">${fmtQty(er.nom)}</span> <span class="muted">${esc(p.unit)}(es)</span>
+          <div class="estsub tnum">est ${fmtQty(er.low)}–${fmtQty(er.high)} · ±${er.pct}%</div></td>
+        <td class="r tnum">${fmtQty(p.reorderPoint)}</td>
+        <td class="r tnum">${used==null?'<span class="muted">—</span>':fmtQty(used)}</td>
+        <td class="r tnum">${cov==null?'<span class="muted">—</span>':fmtQty(cov)+"w"}</td>
+        <td><span class="badge ${st.cls}">${st.label}</span></td>
+        <td class="r"><div style="display:flex;gap:.6rem;justify-content:flex-end">
+          ${st.rank<=2?`<button class="link" data-act="reorder" data-id="${p.id}">Reorder</button>`:""}
+          <button class="link link-muted" data-act="count" data-id="${p.id}">Adjust</button>
+        </div></td></tr>`;
+    }).join("");
+    const txns=S.stockTxns.slice(0,8).map(t=>`<tr>
+        <td style="white-space:nowrap">${fmtDT(t.at)}</td>
+        <td>${esc(pById(t.productId)?.name||"?")}</td>
+        <td class="r tnum" style="color:${t.delta<0?'var(--accent)':'var(--ok)'}">${t.delta>0?"+":""}${fmtQty(t.delta)}</td>
+        <td>${esc(t.reason)}${t.ref?" · "+esc(t.ref):""}</td></tr>`).join("")
+        || `<tr><td colspan="4" class="empty">No stock movements yet — submit a stock count or receive an order.</td></tr>`;
+    return head("Inventory Analysis","Stock position from the latest weekly count. On-hand is shown as an estimate range (±the buffer); low-stock alerts fire off the conservative end so you reorder early. “Used” is boxes consumed since the previous count.",
+        `<button class="btn btn-primary btn-sm" data-nav="stockcount">New weekly count</button>`)+
+      `<div class="kpis">
+        <div class="kpi"><div class="k">Tracked Items</div><div class="v tnum">${prods.length}</div></div>
+        <div class="kpi"><div class="k">Need Reorder</div><div class="v tnum" style="color:${need?"var(--accent)":"inherit"}">${need}</div></div>
+        <div class="kpi"><div class="k">Est. Stock Value</div><div class="v tnum">${money(totalVal)}</div></div>
+        <div class="kpi"><div class="k">Last Count</div><div class="v" style="font-size:1rem">${lc?fmtDate(lc):"—"}</div></div>
+      </div>
+      <section class="card" style="margin-bottom:1.5rem"><div class="section-title">Stock on hand (in boxes)</div>
+        <div class="tw"><table class="dt"><thead><tr><th>Item</th><th class="r">On hand (est.)</th><th class="r">Reorder pt</th><th class="r">Used/wk</th><th class="r">Weeks cover</th><th>Status</th><th class="r">Action</th></tr></thead>
+        <tbody>${rows}</tbody></table></div></section>
+      <section class="card"><div class="section-title">Recent stock movements</div>
+        <div class="tw"><table class="dt"><thead><tr><th>When</th><th>Item</th><th class="r">Change</th><th>Reason</th></tr></thead>
+        <tbody>${txns}</tbody></table></div></section>`;
+  }
+
+  function stockCountView(){
+    const cs=countsSorted(); const prev=cs[0]||null; // most recent count for reference
+    const rows=S.products.map(p=>{
+      const lastBoxes=prev?boxesInCount(prev,p.id):null;
+      return `<tr>
+        <td style="font-weight:700">${esc(p.name)}<div class="estsub">${esc(p.category)}</div></td>
+        <td class="r tnum muted">${lastBoxes==null?"—":fmtQty(lastBoxes)}</td>
+        <td class="r"><input class="qty" type="number" min="0" step="1" value="${fmtQty(p.onHand||0)}" data-boxes="${p.id}" style="width:70px"></td>
+        <td class="muted">${esc(p.unit)}(es)</td>
+      </tr>`;
+    }).join("");
+    const history=cs.slice(0,8).map(c=>`<tr>
+        <td style="white-space:nowrap">${fmtDT(c.at)}</td>
+        <td>${esc(uById(c.countedById)?.name||"—")}</td>
+        <td class="r tnum">${c.items.length} items</td>
+        <td class="muted">${c.items.map(i=>esc(pById(i.productId)?.name?.split(" ")[0]||"")+" "+fmtQty(i.boxes)).slice(0,4).join(" · ")}${c.items.length>4?" …":""}</td>
+      </tr>`).join("") || `<tr><td colspan="4" class="empty">No counts yet.</td></tr>`;
+    return head("Weekly Stock Count","Count how many boxes of each product you have on the shelf and enter them below. Submitting updates the on-hand stock everyone sees. Do this once a week.")+
+      `<section class="card" style="margin-bottom:1.5rem">
+        <div class="section-title">This week's count (boxes on hand)</div>
+        <div class="tw"><table class="dt"><thead><tr><th>Product</th><th class="r">Last count</th><th class="r">Boxes now</th><th>Unit</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+        <div style="padding:1rem;border-top:1px solid var(--hairline);display:flex;gap:.8rem;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" data-act="submitcount">Submit weekly count</button>
+          <span class="muted" style="font-size:.8rem">Leave a box blank to keep its current number.</span>
+        </div>
+      </section>
+      <section class="card"><div class="section-title">Recent counts</div>
+        <div class="tw"><table class="dt"><thead><tr><th>When</th><th>Counted by</th><th class="r">Items</th><th>Snapshot</th></tr></thead>
+        <tbody>${history}</tbody></table></div></section>`;
+  }
+
+  function countModal(p){
+    openModal(`<div class="sheet"><div class="sheet-head"><h2>Adjust stock — ${esc(p.name)}</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body">
+        <p class="muted" style="margin-bottom:.7rem">Quick correction between weekly counts. Enter the number of boxes on hand.</p>
+        <div class="form-row"><label class="label">On hand (${esc(p.unit)}es)</label><input class="input" id="cnt-val" type="number" min="0" step="1" value="${fmtQty(p.onHand)}"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" data-act="savecount" data-id="${p.id}">Update</button>
+      </div></div>`);
+  }
+
+  // ---- modals --------------------------------------------------------------
+  function productModal(p){
+    const opts=`<option value="">— none —</option>`+S.vendors.map(v=>`<option value="${v.id}" ${p&&p.preferredVendorId===v.id?"selected":""}>${esc(v.name)}</option>`).join("");
+    openModal(`<div class="sheet"><div class="sheet-head"><h2>${p?"Edit Product":"New Product"}</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body">
+        <div class="form-row"><label class="label">Name</label><input class="input" id="pm-name" value="${p?esc(p.name):""}"></div>
+        <div class="form-row"><label class="label">Category</label><input class="input" id="pm-cat" value="${p?esc(p.category):""}" placeholder="Consumables, Restorative, Ortho Supplies…"></div>
+        <div class="form-row"><label class="label">Preferred Vendor</label><select class="input" id="pm-vendor">${opts}</select></div>
+        <div class="row-flex">
+          <div class="form-row" style="flex:1;min-width:120px"><label class="label">Unit label</label><input class="input" id="pm-unit" value="${p?esc(p.unit||"box"):"box"}" placeholder="box, kit, case…"></div>
+          <div class="form-row" style="flex:1;min-width:110px"><label class="label">On hand (boxes)</label><input class="input" id="pm-onhand" type="number" min="0" step="1" value="${p?(p.onHand||0):0}"></div>
+        </div>
+        <div class="row-flex">
+          <div class="form-row" style="flex:1;min-width:110px"><label class="label">Reorder pt (boxes)</label><input class="input" id="pm-reorder" type="number" min="0" step="1" value="${p?(p.reorderPoint||0):0}"></div>
+          <div class="form-row" style="flex:1;min-width:90px"><label class="label">Buffer %</label><input class="input" id="pm-buffer" type="number" min="0" max="90" value="${p?pbuffer(p):(S.settings.inventoryBufferPct??10)}"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" data-act="saveprod" data-id="${p?p.id:""}">Save Product</button>
+      </div></div>`);
+  }
+  function vendorModal(v){
+    openModal(`<div class="sheet"><div class="sheet-head"><h2>${v?"Edit Vendor":"New Vendor"}</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body">
+        <div class="form-row"><label class="label">Name</label><input class="input" id="vm-name" value="${v?esc(v.name):""}"></div>
+        <div class="form-row"><label class="label">Contact</label><input class="input" id="vm-contact" value="${v?esc(v.contact||""):""}" placeholder="Account rep, phone…"></div>
+        <div class="form-row"><label class="label">Order Email</label><input class="input" id="vm-email" value="${v?esc(v.email):""}"></div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center" data-act="savevendor" data-id="${v?v.id:""}">Save Vendor</button>
+      </div></div>`);
+  }
+  function pricingModal(p){
+    const used=new Set(pricingFor(p.id).map(x=>x.vendorId));
+    const prows=pricingFor(p.id).sort((a,b)=>a.price-b.price).map(pr=>{
+      const isPref=pr.vendorId===p.preferredVendorId;
+      return `<tr>
+        <td style="font-weight:700">${esc(vById(pr.vendorId).name)}</td>
+        <td class="r tnum">${money(pr.price)}</td>
+        <td class="r tnum">${pr.deliveryDays}d</td>
+        <td class="r">${isPref?'<span class="badge b-received">Preferred</span>':`<button class="link" data-act="setpref" data-pid="${p.id}" data-vid="${pr.vendorId}">Set preferred</button>`}</td>
+        <td class="r"><button class="link link-muted" data-act="delprice" data-id="${pr.id}" data-pid="${p.id}">Remove</button></td>
+      </tr>`;
+    }).join("") || `<tr><td colspan="5" class="empty">No vendor pricing yet.</td></tr>`;
+    const avail=S.vendors.filter(v=>!used.has(v.id)).map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join("");
+    const upd=pricingFor(p.id).map(pr=>`<option value="${pr.vendorId}">${esc(vById(pr.vendorId).name)} (update)</option>`).join("");
+    openModal(`<div class="sheet wide"><div class="sheet-head"><h2>Pricing — ${esc(p.name)}</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body">
+        <div class="tw"><table class="dt"><thead><tr><th>Vendor</th><th class="r">Price</th><th class="r">Delivery</th><th class="r">Preferred</th><th></th></tr></thead>
+        <tbody>${prows}</tbody></table></div>
+        <div style="border-top:1px solid var(--hairline);margin-top:1rem;padding-top:1rem">
+          <label class="label">Add / update vendor pricing</label>
+          <div class="row-flex" style="align-items:flex-end">
+            <select class="input" id="pp-vendor" style="flex:2;min-width:160px"><option value="">Select vendor…</option>${avail}${upd}</select>
+            <input class="input" id="pp-price" type="number" step="0.01" min="0" placeholder="Price" style="flex:1;min-width:90px">
+            <input class="input" id="pp-days" type="number" min="0" placeholder="Days" style="flex:1;min-width:80px">
+            <button class="btn btn-primary" data-act="saveprice" data-pid="${p.id}">Save</button>
+          </div>
+        </div>
+      </div></div>`);
+  }
+
+  const SAMPLE_CSV=
+`Product,Category,Vendor,Vendor Email,Vendor Contact,Price,Delivery Days,Preferred
+Prophy Angles (Box of 100),Consumables,Benco Dental,,,28.00,4,
+Prophy Angles (Box of 100),Consumables,Skyline Dental Supply,orders@skyline.example.com,Rae Cho,26.50,6,yes
+Bite Registration Paste (2x50ml),Impression,Skyline Dental Supply,orders@skyline.example.com,,31.75,6,yes`;
+
+  function importModal(){
+    openModal(`<div class="sheet wide"><div class="sheet-head"><h2>Import Inventory from Excel</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body" id="imp-body">
+        <p class="muted" style="margin-bottom:.7rem">Paste CSV (or upload a .csv) where each row is a product/vendor pricing line. In the real app you can also upload <b>.xlsx</b> and download a template.</p>
+        <div class="row-flex" style="margin-bottom:.6rem">
+          <button class="btn btn-secondary btn-sm" data-act="loadsample">Load sample data</button>
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer">Upload .csv<input type="file" id="imp-file" accept=".csv,text/csv" style="display:none"></label>
+        </div>
+        <textarea class="input mono" id="imp-text" rows="7" placeholder="Product,Category,Vendor,Vendor Email,Vendor Contact,Price,Delivery Days,Preferred">${esc(SAMPLE_CSV)}</textarea>
+        <div style="margin-top:.9rem;display:flex;gap:.6rem"><button class="btn btn-primary" data-act="preview-import">Preview</button></div>
+        <div id="imp-preview"></div>
+      </div></div>`);
+  }
+
+  // Minimal CSV parser (quoted fields, commas, newlines)
+  function parseCsv(text){
+    const rows=[]; let f="",row=[],q=false;
+    for(let i=0;i<text.length;i++){const c=text[i];
+      if(q){ if(c==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+      else if(c==='"') q=true;
+      else if(c===','){ row.push(f.trim()); f=""; }
+      else if(c==='\n'){ row.push(f.trim()); f=""; rows.push(row); row=[]; }
+      else if(c==='\r'){}
+      else f+=c;
+    }
+    if(f.length||row.length){ row.push(f.trim()); rows.push(row); }
+    return rows.filter(r=>r.some(c=>c.length));
+  }
+  const HEADERS={product:["product","product name","name","item"],category:["category","type"],
+    vendor:["vendor","vendor name","supplier"],vendorEmail:["vendor email","email"],vendorContact:["vendor contact","contact","rep"],
+    price:["price","unit price","cost"],deliveryDays:["delivery days","delivery","lead time","days"],preferred:["preferred","preferred vendor","default"]};
+  const TRUTHY=new Set(["yes","y","true","1","x","preferred","default"]);
+
+  function buildPlan(text){
+    const m=parseCsv(text);
+    if(!m.length) return {fatal:"Nothing to import."};
+    const hdr=m[0].map(h=>h.toLowerCase().trim());
+    const col={}; for(const k in HEADERS){ const i=hdr.findIndex(h=>HEADERS[k].includes(h)); if(i>=0) col[k]=i; }
+    for(const req of ["product","category","vendor","price","deliveryDays"]) if(col[req]===undefined) return {fatal:"Missing required column: "+req};
+    const rows=[],errors=[];
+    for(let r=1;r<m.length;r++){
+      const c=m[r]; const g=k=>col[k]!==undefined?(c[col[k]]||"").trim():"";
+      const product=g("product"),category=g("category"),vendor=g("vendor");
+      const price=Number(g("price").replace(/[$,]/g,"")); const days=Number(g("deliveryDays").replace(/[^0-9.\-]/g,""));
+      const errs=[]; if(!product)errs.push("missing Product"); if(!category)errs.push("missing Category"); if(!vendor)errs.push("missing Vendor");
+      if(!g("price")||isNaN(price)||price<0)errs.push("invalid Price");
+      if(!g("deliveryDays")||!Number.isInteger(days)||days<0)errs.push("invalid Delivery Days");
+      if(errs.length){ errors.push({row:r+1,msg:errs.join(", ")}); continue; }
+      rows.push({product,category,vendor,vendorEmail:g("vendorEmail")||null,vendorContact:g("vendorContact")||null,price,deliveryDays:days,preferred:TRUTHY.has(g("preferred").toLowerCase())});
+    }
+    // group
+    const vmap=new Map(),pmap=new Map();
+    rows.forEach(row=>{
+      const vk=row.vendor.toLowerCase();
+      if(!vmap.has(vk)) vmap.set(vk,{name:row.vendor,email:row.vendorEmail,contact:row.vendorContact});
+      else{ const e=vmap.get(vk); if(!e.email&&row.vendorEmail)e.email=row.vendorEmail; if(!e.contact&&row.vendorContact)e.contact=row.vendorContact; }
+      const pk=row.product.toLowerCase();
+      if(!pmap.has(pk)) pmap.set(pk,{name:row.product,category:row.category,preferred:null,pricing:new Map()});
+      const pr=pmap.get(pk); if(row.preferred) pr.preferred=row.vendor;
+      pr.pricing.set(vk,{vendorName:row.vendor,price:row.price,deliveryDays:row.deliveryDays});
+    });
+    const existV=new Set(S.vendors.map(v=>v.name.toLowerCase()));
+    const existP=new Set(S.products.map(p=>p.name.toLowerCase()));
+    const blocking=[];
+    const vendors=[...vmap.values()].map(v=>{const isNew=!existV.has(v.name.toLowerCase());const o={name:v.name,email:v.email,contact:v.contact,status:isNew?"new":"existing"};if(isNew&&!v.email){o.error=true;blocking.push(`Vendor "${v.name}" is new but has no Vendor Email.`);}return o;});
+    let pricingCount=0;
+    const products=[...pmap.values()].map(p=>{pricingCount+=p.pricing.size;const isNew=!existP.has(p.name.toLowerCase());let pref=p.preferred;if(!pref&&isNew){const ch=[...p.pricing.values()].sort((a,b)=>a.price-b.price)[0];pref=ch?ch.vendorName:null;}return{name:p.name,category:p.category,status:isNew?"new":"existing",preferred:pref,vendorCount:p.pricing.size};});
+    return {rows,errors,vendors,products,pricingCount,blocking,vmap,pmap};
+  }
+
+  function renderImportPreview(plan){
+    if(plan.fatal){ return `<div class="notice" style="margin-top:1rem">${esc(plan.fatal)}</div>`; }
+    if(!plan.rows.length){ return `<div class="notice" style="margin-top:1rem">No valid rows found.</div>`; }
+    const prows=plan.products.map(p=>`<tr>
+      <td style="font-weight:700">${esc(p.name)}</td><td>${esc(p.category)}</td><td>${esc(p.preferred||"—")}</td>
+      <td class="r tnum">${p.vendorCount}</td><td class="r"><span class="badge ${p.status==="new"?"b-new":"b-update"}">${p.status==="new"?"New":"Update"}</span></td></tr>`).join("");
+    const vsum=plan.vendors.map(v=>esc(v.name)+(v.status==="new"?' <span style="color:var(--accent)">(new)</span>':"")).join(", ");
+    const block=plan.blocking.length?`<div class="notice" style="margin-top:.8rem"><b>Fix before importing</b><ul style="margin:.3rem 0 0;padding-left:1.1rem">${plan.blocking.map(b=>"<li>"+esc(b)+"</li>").join("")}</ul></div>`:"";
+    const skip=plan.errors.length?`<div class="notice" style="margin-top:.8rem;border-color:var(--muted);background:var(--paper);color:var(--muted)"><b>${plan.errors.length} row(s) will be skipped</b><ul style="margin:.3rem 0 0;padding-left:1.1rem">${plan.errors.slice(0,6).map(e=>"<li>Row "+e.row+": "+esc(e.msg)+"</li>").join("")}</ul></div>`:"";
+    const canCommit=plan.blocking.length===0;
+    return `<div style="margin-top:1rem">
+      <div class="stat-row"><div class="stat"><div class="k">Rows</div><div class="v tnum">${plan.rows.length}</div></div>
+        <div class="stat"><div class="k">Products</div><div class="v tnum">${plan.products.length}</div></div>
+        <div class="stat"><div class="k">Pricing lines</div><div class="v tnum">${plan.pricingCount}</div></div></div>
+      <div class="tw" style="max-height:220px;overflow-y:auto;border:1px solid var(--hairline)"><table class="dt"><thead><tr><th>Product</th><th>Category</th><th>Preferred</th><th class="r">Vendors</th><th class="r">State</th></tr></thead><tbody>${prows}</tbody></table></div>
+      <p class="muted" style="margin:.6rem 0;font-size:.78rem">Vendors: ${vsum}</p>${block}${skip}
+      <div style="display:flex;gap:.6rem;margin-top:.8rem">
+        <button class="btn btn-primary" data-act="commit-import" ${canCommit?"":"disabled"}>Import ${plan.products.length} product(s)</button>
+      </div></div>`;
+  }
+
+  function commitImport(plan){
+    let vC=0,vU=0,pC=0,pU=0,prU=0;
+    const idOf=name=>{const v=S.vendors.find(x=>x.name.toLowerCase()===name.toLowerCase());return v?v.id:null;};
+    plan.vmap.forEach(v=>{ let id=idOf(v.name);
+      if(id){ if(v.email||v.contact){ const ex=vById(id); if(v.email)ex.email=v.email; if(v.contact)ex.contact=v.contact; vU++; } }
+      else{ const nv={id:nid("v"),name:v.name,email:v.email||"",contact:v.contact||null}; S.vendors.push(nv); vC++; }
+    });
+    plan.pmap.forEach(p=>{
+      let prod=S.products.find(x=>x.name.toLowerCase()===p.name.toLowerCase());
+      let pref=p.preferred; if(!pref&&!prod){ const ch=[...p.pricing.values()].sort((a,b)=>a.price-b.price)[0]; pref=ch?ch.vendorName:null; }
+      const prefId=pref?idOf(pref):null;
+      if(prod){ prod.category=p.category; if(pref) prod.preferredVendorId=prefId; pU++; }
+      else{ prod={id:nid("p"),name:p.name,category:p.category,preferredVendorId:prefId}; S.products.push(prod); pC++; }
+      p.pricing.forEach(line=>{ const vid=idOf(line.vendorName); if(!vid)return;
+        let ex=S.pricing.find(x=>x.productId===prod.id&&x.vendorId===vid);
+        if(ex){ ex.price=line.price; ex.deliveryDays=line.deliveryDays; } else { S.pricing.push({id:nid("pr"),productId:prod.id,vendorId:vid,price:line.price,deliveryDays:line.deliveryDays}); }
+        prU++;
+      });
+    });
+    logAudit("inventory.imported",`Imported: +${pC} products, ~${pU} updated, +${vC} vendors, ${prU} pricing rows`);
+    save();
+    return {vC,vU,pC,pU,prU,skipped:plan.errors.length};
+  }
+
+  function exportModal(){
+    const orders=S.requests.filter(r=>r.status==="ordered"||r.status==="received");
+    const H=["PO Number","Status","Product","Category","Quantity","Vendor","Vendor Email","Unit Price","Line Total","Delivery Days","Requested By","Ordered At","Due Date","Received At","Reminder Sent"];
+    const cell=v=>{const s=v==null?"":String(v);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+    const lines=[H.join(",")];
+    orders.forEach(o=>{const u=Number(o.price)||0;lines.push([po(o.id),o.status,pById(o.productId).name,pById(o.productId).category,o.qty,vById(o.vendorId)?.name||"",vById(o.vendorId)?.email||"",u.toFixed(2),(u*o.qty).toFixed(2),o.deliveryDays||"",uById(o.requestedById).name,o.orderedAt||"",o.dueDate||"",o.receivedAt||"",o.reminderSent?"yes":"no"].map(cell).join(","));});
+    const csv=lines.join("\n");
+    openModal(`<div class="sheet wide"><div class="sheet-head"><h2>Purchase Orders — CSV Export</h2><button class="x" data-act="close">×</button></div>
+      <div class="sheet-body">
+        <p class="muted" style="margin-bottom:.6rem">The real app downloads this as a .csv file. In this demo, copy the text below.</p>
+        <textarea class="input mono" rows="10" readonly onclick="this.select()">${esc(csv)}</textarea>
+      </div></div>`);
+  }
+
+  // ---- render --------------------------------------------------------------
+  const VIEWS={catalog:catalogView,"my-requests":myRequestsView,stockcount:stockCountView,inventory:inventoryView,dashboard:dashboardView,requests:pendingView,awaiting:awaitingView,products:productsView,vendors:vendorsView,audit:auditView,settings:settingsView};
+  function render(){
+    const app=$("#app");
+    if(!S.sessionUserId){ app.innerHTML=loginView(); return; }
+    const u=me();
+    // guard: staff can't see admin-only views
+    const adminViews=new Set(["inventory","dashboard","requests","awaiting","products","vendors","audit","settings"]);
+    if(u.role!=="admin" && adminViews.has(view)) view="catalog";
+    if(view==="login") view=u.role==="admin"?"inventory":"catalog";
+    const fn=VIEWS[view]||(u.role==="admin"?inventoryView:catalogView);
+    app.innerHTML=shell(fn());
+  }
+
+  // ---- events --------------------------------------------------------------
+  document.addEventListener("click",e=>{
+    const nb=e.target.closest("[data-nav]"); if(nb){ e.preventDefault(); closeModal(); nav(nb.getAttribute("data-nav")); return; }
+    const el=e.target.closest("[data-act]"); if(!el) return;
+    const act=el.getAttribute("data-act"); const id=el.getAttribute("data-id");
+    switch(act){
+      case "togglenav": navOpen=!navOpen; render(); break;
+      case "login": {
+        const email=($("#lg-email").value||"").trim().toLowerCase();
+        const user=S.users.find(u=>u.email.toLowerCase()===email);
+        if(!user){ toast("Invalid email or password."); return; }
+        S.sessionUserId=user.id; save(); view=user.role==="admin"?"inventory":"catalog"; render(); break;
+      }
+      case "quick": { const role=el.getAttribute("data-role"); const user=S.users.find(u=>u.role===role); S.sessionUserId=user.id; save(); view=role==="admin"?"inventory":"catalog"; render(); break; }
+      case "signout": S.sessionUserId=null; save(); view="login"; render(); break;
+      case "request": { const qty=Math.max(1,parseInt($(`[data-qty="${id}"]`).value)||1); createRequest(id,qty); render(); break; }
+      case "receive": markReceived(id); break;
+      case "approve": approveRequest(id); break;
+      case "reject": rejectRequest(id); break;
+      case "remind": sendReminder(id); break;
+      case "runjob": runReminderJob(); break;
+      case "export": exportModal(); break;
+      case "close": closeModal(); break;
+      case "newprod": productModal(null); break;
+      case "editprod": productModal(pById(id)); break;
+      case "delprod": { const p=pById(id); if(S.requests.some(r=>r.productId===id)){ toast("Can't delete: product has requests on record"); return; } if(confirm(`Delete "${p.name}"?`)){ S.products=S.products.filter(x=>x.id!==id); S.pricing=S.pricing.filter(x=>x.productId!==id); logAudit("product.deleted",`Deleted product ${p.name}`); save(); render(); toast("Product deleted"); } break; }
+      case "saveprod": {
+        const name=$("#pm-name").value.trim(),cat=$("#pm-cat").value.trim(),vid=$("#pm-vendor").value||null;
+        if(!name||!cat){ toast("Name and category are required"); return; }
+        const unit=($("#pm-unit").value||"box").trim();
+        const onHand=Math.max(0,parseFloat($("#pm-onhand").value)||0), reorder=Math.max(0,parseFloat($("#pm-reorder").value)||0);
+        const buffer=Math.min(90,Math.max(0,parseFloat($("#pm-buffer").value)||0));
+        if(id){ const p=pById(id); const prevOnHand=p.onHand||0; p.name=name; p.category=cat; p.preferredVendorId=vid; p.unit=unit; p.reorderPoint=reorder; p.bufferPct=buffer;
+          if(onHand!==prevOnHand){ p.onHand=onHand; S.stockTxns.unshift({id:nid("t"),at:new Date().toISOString(),productId:p.id,delta:Math.round((onHand-prevOnHand)*1000)/1000,reason:"count",ref:"adjustment"}); } logAudit("product.updated",`Updated product ${name}`); }
+        else{ S.products.push({id:nid("p"),name,category:cat,preferredVendorId:vid,unit,onHand,reorderPoint:reorder,bufferPct:buffer}); logAudit("product.created",`Created product ${name}`); }
+        save(); closeModal(); render(); toast("Product saved","ok"); break;
+      }
+      case "pricing": pricingModal(pById(id)); break;
+      case "setpref": { const p=pById(el.getAttribute("data-pid")); p.preferredVendorId=el.getAttribute("data-vid"); logAudit("product.preferredVendor.set",`Set preferred vendor for ${p.name} to ${vById(p.preferredVendorId).name}`); save(); pricingModal(p); render(); break; }
+      case "delprice": { const pid=el.getAttribute("data-pid"); S.pricing=S.pricing.filter(x=>x.id!==id); save(); pricingModal(pById(pid)); render(); break; }
+      case "saveprice": {
+        const pid=el.getAttribute("data-pid"); const vid=$("#pp-vendor").value; const price=parseFloat($("#pp-price").value); const days=parseInt($("#pp-days").value);
+        if(!vid||isNaN(price)||isNaN(days)){ toast("Vendor, price and days are required"); return; }
+        let ex=S.pricing.find(x=>x.productId===pid&&x.vendorId===vid);
+        if(ex){ ex.price=price; ex.deliveryDays=days; } else { S.pricing.push({id:nid("pr"),productId:pid,vendorId:vid,price,deliveryDays:days}); }
+        logAudit("pricing.upserted",`Set pricing ${money(price)} / ${days}d`); save(); pricingModal(pById(pid)); render(); toast("Pricing saved","ok"); break;
+      }
+      case "newvendor": vendorModal(null); break;
+      case "editvendor": vendorModal(vById(id)); break;
+      case "delvendor": { const v=vById(id); if(S.requests.some(r=>r.vendorId===id&&(r.status==="ordered"||r.status==="received"))){ toast("Can't delete: vendor has orders on record"); return; } if(confirm(`Delete vendor "${v.name}"?`)){ S.vendors=S.vendors.filter(x=>x.id!==id); S.pricing=S.pricing.filter(x=>x.vendorId!==id); logAudit("vendor.deleted",`Deleted vendor ${v.name}`); save(); render(); toast("Vendor deleted"); } break; }
+      case "savevendor": {
+        const name=$("#vm-name").value.trim(),contact=$("#vm-contact").value.trim(),email=$("#vm-email").value.trim();
+        if(!name||!email){ toast("Name and email are required"); return; }
+        if(id){ const v=vById(id); v.name=name; v.contact=contact; v.email=email; logAudit("vendor.updated",`Updated vendor ${name}`); }
+        else{ S.vendors.push({id:nid("v"),name,contact,email}); logAudit("vendor.created",`Created vendor ${name}`); }
+        save(); closeModal(); render(); toast("Vendor saved","ok"); break;
+      }
+      case "saverec": { const val=$("#rec").value; S.settings.recipientEmails=val.split(/[\n,]/).map(x=>x.trim().toLowerCase()).filter(Boolean); logAudit("settings.reminders.updated",`Recipients set to: ${S.settings.recipientEmails.join(", ")}`); save(); toast("Recipients saved","ok"); render(); break; }
+      case "import": importModal(); break;
+      case "loadsample": $("#imp-text").value=SAMPLE_CSV; break;
+      case "preview-import": { const plan=buildPlan($("#imp-text").value); window.__plan=plan; $("#imp-preview").innerHTML=renderImportPreview(plan); break; }
+      case "commit-import": { const plan=window.__plan; if(!plan||plan.blocking.length) return; const res=commitImport(plan);
+        $("#imp-body").innerHTML=`<div class="notice notice-ok"><b>Import complete.</b></div>
+          <ul style="margin:1rem 0;padding-left:1.1rem;line-height:1.7">
+            <li>Products created: <b>${res.pC}</b></li><li>Products updated: <b>${res.pU}</b></li>
+            <li>Vendors created: <b>${res.vC}</b></li><li>Pricing lines saved: <b>${res.prU}</b></li>
+            ${res.skipped?`<li class="muted">Rows skipped: ${res.skipped}</li>`:""}</ul>
+          <div style="display:flex;gap:.6rem"><button class="btn btn-secondary" data-act="close">Close</button><button class="btn btn-primary" data-nav="catalog">View in catalog</button></div>`;
+        render(); break; }
+      case "submitcount": {
+        const boxesById={};
+        document.querySelectorAll("[data-boxes]").forEach(inp=>{ boxesById[inp.getAttribute("data-boxes")]=inp.value; });
+        submitStockCount(boxesById); break;
+      }
+      case "reorder": quickReorder(id); break;
+      case "count": countModal(pById(id)); break;
+      case "savecount": setCount(id,$("#cnt-val").value); closeModal(); break;
+      case "resetdemo": resetDemo(); closeModal(); break;
+    }
+  });
+  document.addEventListener("change",e=>{
+    if(e.target&&e.target.id==="imp-file"){ const f=e.target.files[0]; if(!f)return; const rd=new FileReader(); rd.onload=()=>{ $("#imp-text").value=rd.result; }; rd.readAsText(f); }
+  });
+
+  // boot
+  load(); render();
+  // expose a reset for convenience
+  window.resetAsanaDemo=resetDemo;
+})();
+</script>
+
+</body>
+</html>

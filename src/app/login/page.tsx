@@ -43,7 +43,7 @@ function LoginForm() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-paper px-4">
       <div className="card w-full max-w-sm">
-        <div className="border-b-2 border-ink px-6 py-5">
+        <div className="border-b border-hairline px-6 py-5">
           <span className="block text-xs font-bold uppercase tracking-widest text-accent">
             Asana Ortho
           </span>
@@ -92,7 +92,7 @@ function LoginForm() {
           </button>
         </form>
 
-        <div className="border-t-2 border-ink px-6 py-4 text-xs text-muted">
+        <div className="border-t border-hairline px-6 py-4 text-xs text-muted">
           <p className="font-semibold uppercase tracking-wide">Demo accounts</p>
           <p className="mt-1">admin@asanaortho.com</p>
           <p>staff@asanaortho.com</p>

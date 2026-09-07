@@ -39,7 +39,7 @@ export function AppNav({
       {/* Mobile: hamburger toggle */}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex h-10 w-10 items-center justify-center border-2 border-ink md:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded border border-hairline md:hidden"
         aria-label={open ? "Close menu" : "Open menu"}
         aria-expanded={open}
       >
@@ -53,7 +53,7 @@ export function AppNav({
 
       {/* Mobile: dropdown panel */}
       {open && (
-        <div className="w-full border-t-2 border-ink pt-3 md:hidden">
+        <div className="w-full border-t border-hairline pt-3 md:hidden">
           <nav className="flex flex-col">
             {nav.map((item) => {
               const active =

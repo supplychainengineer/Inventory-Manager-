@@ -30,7 +30,7 @@ export function RequestItemForm({ productId }: { productId: string }) {
         min={1}
         value={qty}
         onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-        className="w-16 border-2 border-ink bg-white px-2 py-1 text-sm outline-none focus:border-accent"
+        className="w-16 rounded border border-hairline bg-white px-2 py-1 text-sm outline-none focus:border-accent"
         aria-label="Quantity"
       />
       <button

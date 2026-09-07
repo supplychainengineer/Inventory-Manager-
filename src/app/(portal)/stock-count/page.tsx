@@ -43,7 +43,7 @@ export default async function StockCountPage() {
       <StockCountForm rows={rows} />
 
       <section className="card">
-        <div className="border-b-2 border-ink bg-paper px-4 py-2">
+        <div className="border-b border-hairline bg-paper px-4 py-2">
           <h2 className="text-sm font-bold uppercase tracking-wide">Recent counts</h2>
         </div>
         <div className="overflow-x-auto">

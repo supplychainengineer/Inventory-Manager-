@@ -6,35 +6,42 @@ const config: Config = {
     "./src/components/**/*.{ts,tsx}",
   ],
   theme: {
-    // Flat / architectural: zero border-radius everywhere.
+    // Cool & calm: gentle rounded corners instead of hard edges.
     borderRadius: {
       none: "0",
-      DEFAULT: "0",
-      sm: "0",
-      md: "0",
-      lg: "0",
-      full: "0",
+      sm: "6px",
+      DEFAULT: "8px",
+      md: "8px",
+      lg: "12px",
+      xl: "16px",
+      full: "9999px",
     },
     extend: {
       colors: {
-        // Near-mono red accent on white / off-white.
+        // Calm deep-teal accent on cool, soft neutrals.
         accent: {
-          DEFAULT: "#ec3013",
-          hover: "#c9270e",
-          soft: "#fbe4e0",
+          DEFAULT: "#14857a",
+          hover: "#0f6f66",
+          soft: "#dcefec",
         },
-        paper: "#f3f2f2",
-        ink: "#1a1a1a",
-        muted: "#6b6b6b",
-        line: "#1a1a1a",
+        paper: "#eef2f1",
+        surface: "#ffffff",
+        ink: "#253138",
+        muted: "#6d7c81",
+        line: "#dbe3e2",
+        hairline: "#dbe3e2",
+        // Semantic status colors (separate from the accent).
+        ok: { DEFAULT: "#2f9e6b", soft: "#e4f3ec" },
+        warn: { DEFAULT: "#bd7d2a", soft: "#f7edda" },
+        alert: { DEFAULT: "#d9534f", soft: "#f8e6e4" },
       },
       fontFamily: {
         sans: ["Archivo", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        // Only a subtle elevation for cards/modals; no dramatic drop shadows.
-        card: "0 1px 2px rgba(26,26,26,0.06), 0 1px 1px rgba(26,26,26,0.04)",
-        modal: "0 4px 16px rgba(26,26,26,0.12)",
+        // Soft, calm elevation.
+        card: "0 1px 2px rgba(37,49,56,0.05), 0 4px 12px rgba(37,49,56,0.05)",
+        modal: "0 12px 32px rgba(37,49,56,0.16)",
       },
       borderWidth: {
         DEFAULT: "1px",

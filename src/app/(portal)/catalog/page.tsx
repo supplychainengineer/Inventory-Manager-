@@ -35,7 +35,7 @@ export default async function CatalogPage() {
       <div className="space-y-8">
         {[...byCategory.entries()].map(([category, items]) => (
           <section key={category} className="card">
-            <div className="border-b-2 border-ink bg-paper px-4 py-2">
+            <div className="border-b border-hairline bg-paper px-4 py-2">
               <h2 className="text-sm font-bold uppercase tracking-wide">{category}</h2>
             </div>
             <div className="overflow-x-auto">

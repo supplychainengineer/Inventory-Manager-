@@ -44,7 +44,7 @@ export function StockCountForm({ rows }: { rows: CountRow[] }) {
 
   return (
     <section className="card mb-8">
-      <div className="border-b-2 border-ink bg-paper px-4 py-2">
+      <div className="border-b border-hairline bg-paper px-4 py-2">
         <h2 className="text-sm font-bold uppercase tracking-wide">This week&apos;s count (boxes on hand)</h2>
       </div>
       <div className="overflow-x-auto">
@@ -74,7 +74,7 @@ export function StockCountForm({ rows }: { rows: CountRow[] }) {
                     step={1}
                     value={values[r.id] ?? ""}
                     onChange={(e) => setValues((v) => ({ ...v, [r.id]: e.target.value }))}
-                    className="w-20 border-2 border-ink px-2 py-1 text-right text-sm outline-none focus:border-accent"
+                    className="w-20 rounded border border-hairline px-2 py-1 text-right text-sm outline-none focus:border-accent"
                     aria-label={`Boxes of ${r.name}`}
                   />
                 </td>
@@ -91,7 +91,7 @@ export function StockCountForm({ rows }: { rows: CountRow[] }) {
           </tbody>
         </table>
       </div>
-      <div className="flex flex-wrap items-center gap-4 border-t-2 border-ink px-4 py-4">
+      <div className="flex flex-wrap items-center gap-4 border-t border-hairline px-4 py-4">
         <button onClick={submit} disabled={pending || rows.length === 0} className="btn-primary px-4 py-2">
           {pending ? "Saving…" : "Submit weekly count"}
         </button>

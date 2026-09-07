@@ -65,7 +65,7 @@ export default async function InventoryPage() {
         }
       />
 
-      <div className="mb-8 grid grid-cols-2 gap-px border-2 border-ink bg-ink md:grid-cols-4">
+      <div className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline md:grid-cols-4">
         <Kpi label="Tracked Items" value={String(rows.length)} />
         <Kpi label="Need Reorder" value={String(needReorder)} accent={needReorder > 0} />
         <Kpi label="Est. Stock Value" value={formatMoney(totalValue)} />
@@ -73,7 +73,7 @@ export default async function InventoryPage() {
       </div>
 
       <section className="card mb-8">
-        <div className="border-b-2 border-ink bg-paper px-4 py-2">
+        <div className="border-b border-hairline bg-paper px-4 py-2">
           <h2 className="text-sm font-bold uppercase tracking-wide">Stock on hand (in boxes)</h2>
         </div>
         <div className="overflow-x-auto">
@@ -137,7 +137,7 @@ export default async function InventoryPage() {
       </section>
 
       <section className="card">
-        <div className="border-b-2 border-ink bg-paper px-4 py-2">
+        <div className="border-b border-hairline bg-paper px-4 py-2">
           <h2 className="text-sm font-bold uppercase tracking-wide">Recent stock movements</h2>
         </div>
         <div className="overflow-x-auto">

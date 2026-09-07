@@ -5,9 +5,16 @@
 @tailwind utilities;
 
 :root {
-  --accent: #ec3013;
-  --paper: #f3f2f2;
-  --ink: #1a1a1a;
+  --accent: #14857a;
+  --accent-hover: #0f6f66;
+  --paper: #eef2f1;
+  --surface: #ffffff;
+  --ink: #253138;
+  --muted: #6d7c81;
+  --hairline: #dbe3e2;
+  --ok: #2f9e6b;
+  --warn: #bd7d2a;
+  --alert: #d9534f;
 }
 
 html,
@@ -25,21 +32,21 @@ body {
 }
 
 @layer components {
-  /* Flush-left labelled buttons, zero radius, flat. */
+  /* Calm, rounded, flush-left labelled buttons. */
   .btn {
-    @apply inline-flex items-center justify-start gap-2 border-2 border-ink px-4 py-2 text-sm font-semibold uppercase tracking-wide transition-colors;
+    @apply inline-flex items-center justify-start gap-2 rounded border px-4 py-2 text-sm font-semibold tracking-wide transition-colors;
   }
   .btn-primary {
-    @apply btn bg-accent text-white hover:bg-accent-hover;
+    @apply btn border-accent bg-accent text-white shadow-sm hover:bg-accent-hover;
   }
   .btn-secondary {
-    @apply btn bg-white text-ink hover:bg-paper;
+    @apply btn border-hairline bg-surface text-ink hover:bg-paper;
   }
   .btn-ghost {
     @apply inline-flex items-center gap-1 border-0 px-2 py-1 text-sm font-semibold text-accent hover:underline;
   }
   .btn-danger {
-    @apply btn border-accent bg-white text-accent hover:bg-accent hover:text-white;
+    @apply btn border-alert bg-surface text-alert hover:bg-alert hover:text-white;
   }
   .btn:disabled,
   .btn-primary:disabled,
@@ -51,53 +58,56 @@ body {
     @apply mb-1 block text-left text-xs font-semibold uppercase tracking-wide text-muted;
   }
   .field-input {
-    @apply w-full border-2 border-ink bg-white px-3 py-2 text-sm outline-none focus:border-accent;
+    @apply w-full rounded border border-hairline bg-surface px-3 py-2 text-sm outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20;
   }
 
   .card {
-    @apply border-2 border-ink bg-white shadow-card;
+    @apply overflow-hidden rounded-lg border border-hairline bg-surface shadow-card;
   }
 
-  /* Data-dense tables with themed header rows. */
+  /* Data-dense tables with soft, calm header rows. */
   .data-table {
     @apply w-full border-collapse text-left text-sm;
   }
   .data-table thead th {
-    @apply border-b-2 border-ink bg-ink px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white;
+    @apply border-b border-hairline bg-paper px-3 py-2.5 text-left text-xs font-bold uppercase tracking-wide text-muted;
   }
   .data-table tbody td {
-    @apply border-b border-muted/30 px-3 py-2 align-middle;
+    @apply border-b border-hairline px-3 py-2.5 align-middle;
+  }
+  .data-table tbody tr:last-child td {
+    @apply border-b-0;
   }
   .data-table tbody tr:hover {
-    @apply bg-paper;
+    @apply bg-paper/60;
   }
 
   .badge {
-    @apply inline-block border px-2 py-0.5 text-xs font-bold uppercase tracking-wide;
+    @apply inline-block rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
   }
   .badge-pending {
-    @apply border-muted bg-white text-muted;
+    @apply border-hairline bg-paper text-muted;
   }
   .badge-ordered {
-    @apply border-ink bg-ink text-white;
+    @apply border-accent/30 bg-accent-soft text-accent;
   }
   .badge-received {
-    @apply border-accent bg-accent text-white;
+    @apply border-ok/30 bg-ok-soft text-ok;
   }
   .badge-rejected {
-    @apply border-muted bg-paper text-muted line-through;
+    @apply border-hairline bg-paper text-muted line-through;
   }
   .badge-overdue {
-    @apply border-accent bg-accent-soft text-accent;
+    @apply border-alert/30 bg-alert-soft text-alert;
   }
   .badge-ok {
-    @apply border-[#1f7a3d] bg-[#1f7a3d] text-white;
+    @apply border-ok/30 bg-ok-soft text-ok;
   }
   .badge-warn {
-    @apply border-[#b25e00] bg-white text-[#b25e00];
+    @apply border-warn/30 bg-warn-soft text-warn;
   }
 
   .section-divider {
-    @apply border-t-2 border-ink;
+    @apply border-t border-hairline;
   }
 }

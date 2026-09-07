@@ -29,10 +29,10 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg border-2 border-ink bg-white shadow-modal"
+        className="w-full max-w-lg rounded border border-hairline bg-white shadow-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b-2 border-ink px-4 py-3">
+        <div className="flex items-center justify-between border-b border-hairline px-4 py-3">
           <h2 className="text-sm font-bold uppercase tracking-wide">{title}</h2>
           <button
             onClick={onClose}

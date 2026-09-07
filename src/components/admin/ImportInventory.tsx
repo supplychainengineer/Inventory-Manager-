@@ -107,13 +107,13 @@ export function ImportInventory() {
               </p>
             ) : plan ? (
               <div>
-                <div className="mb-4 grid grid-cols-3 gap-px border-2 border-ink bg-ink text-center">
+                <div className="mb-4 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-hairline bg-hairline text-center">
                   <Stat label="Rows" value={plan.rowCount} />
                   <Stat label="Products" value={plan.products.length} />
                   <Stat label="Pricing lines" value={plan.pricingCount} />
                 </div>
 
-                <div className="mb-4 max-h-56 overflow-y-auto border-2 border-ink">
+                <div className="mb-4 max-h-56 overflow-y-auto rounded border border-hairline">
                   <table className="data-table">
                     <thead>
                       <tr>

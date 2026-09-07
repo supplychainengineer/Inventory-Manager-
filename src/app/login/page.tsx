@@ -93,10 +93,7 @@ function LoginForm() {
         </form>
 
         <div className="border-t border-hairline px-6 py-4 text-xs text-muted">
-          <p className="font-semibold uppercase tracking-wide">Demo accounts</p>
-          <p className="mt-1">admin@asanaortho.com</p>
-          <p>staff@asanaortho.com</p>
-          <p className="mt-1">password: password123</p>
+          <p>Access is provided by your practice administrator.</p>
         </div>
       </div>
     </main>

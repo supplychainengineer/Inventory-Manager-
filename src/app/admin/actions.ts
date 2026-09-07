@@ -19,6 +19,7 @@ import { parseInventoryFile } from "@/lib/inventory-import";
 import { buildImportPlan, commitImport, type ImportPlan } from "@/lib/inventory-plan";
 import { applyStock } from "@/lib/stock";
 import { suggestedReorderBoxes } from "@/lib/inventory";
+import bcrypt from "bcryptjs";
 
 function revalidateAdmin() {
   revalidatePath("/admin");
@@ -623,4 +624,116 @@ export async function updateInventoryBuffer(formData: FormData) {
   revalidatePath("/admin/settings");
   revalidatePath("/admin/inventory");
   return { ok: true, bufferPct: saved };
+}
+
+// ---------------------------------------------------------------------------
+// User management (admin creates/invites accounts — no public signup)
+// ---------------------------------------------------------------------------
+
+const roleEnum = z.enum(["staff", "admin"]);
+
+const createUserSchema = z.object({
+  name: z.string().min(1, "Name required"),
+  email: z.string().email("Valid email required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  role: roleEnum,
+});
+
+export async function createUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const data = createUserSchema.parse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    role: formData.get("role"),
+  });
+  const email = data.email.toLowerCase().trim();
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new Error("A user with that email already exists");
+
+  const passwordHash = await bcrypt.hash(data.password, 10);
+  await prisma.user.create({
+    data: { name: data.name, email, passwordHash, role: data.role },
+  });
+  await logAudit({
+    actorId: admin.id,
+    action: "user.created",
+    details: `${admin.name} created ${data.role} user ${email}`,
+  });
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+const updateUserSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1, "Name required"),
+  role: roleEnum,
+  password: z.string().optional(),
+});
+
+export async function updateUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const data = updateUserSchema.parse({
+    id: formData.get("id"),
+    name: formData.get("name"),
+    role: formData.get("role"),
+    password: formData.get("password") || undefined,
+  });
+
+  const user = await prisma.user.findUnique({ where: { id: data.id } });
+  if (!user) throw new Error("User not found");
+
+  // Don't allow demoting the last remaining admin.
+  if (user.role === "admin" && data.role !== "admin") {
+    const adminCount = await prisma.user.count({ where: { role: "admin" } });
+    if (adminCount <= 1) throw new Error("You can't remove the last admin");
+  }
+
+  const patch: { name: string; role: "staff" | "admin"; passwordHash?: string } = {
+    name: data.name,
+    role: data.role,
+  };
+  if (data.password) {
+    if (data.password.length < 8) throw new Error("Password must be at least 8 characters");
+    patch.passwordHash = await bcrypt.hash(data.password, 10);
+  }
+  await prisma.user.update({ where: { id: data.id }, data: patch });
+  await logAudit({
+    actorId: admin.id,
+    action: "user.updated",
+    details: `${admin.name} updated user ${user.email}${data.password ? " (password reset)" : ""}`,
+  });
+  revalidatePath("/admin/users");
+  return { ok: true };
+}
+
+export async function deleteUser(formData: FormData) {
+  const admin = await requireAdmin();
+  const id = String(formData.get("id") || "");
+  if (!id) throw new Error("Missing user id");
+  if (id === admin.id) throw new Error("You can't delete your own account");
+
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new Error("User not found");
+
+  if (user.role === "admin") {
+    const adminCount = await prisma.user.count({ where: { role: "admin" } });
+    if (adminCount <= 1) throw new Error("You can't delete the last admin");
+  }
+
+  // Requests reference their requester, so a user with request history can't be
+  // removed (their record is part of the audit trail).
+  const requestCount = await prisma.request.count({ where: { requestedById: id } });
+  if (requestCount > 0) {
+    throw new Error("This user has request history and can't be deleted. Change their role instead.");
+  }
+
+  await prisma.user.delete({ where: { id } });
+  await logAudit({
+    actorId: admin.id,
+    action: "user.deleted",
+    details: `${admin.name} deleted user ${user.email}`,
+  });
+  revalidatePath("/admin/users");
+  return { ok: true };
 }

@@ -10,6 +10,7 @@ const nav: NavItem[] = [
   { href: "/admin/awaiting", label: "Awaiting" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/vendors", label: "Vendors" },
+  { href: "/admin/users", label: "Users" },
   { href: "/admin/audit", label: "Audit" },
   { href: "/admin/settings", label: "Settings" },
 ];

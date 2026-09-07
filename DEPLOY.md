@@ -7,23 +7,21 @@ plus free Vercel, Neon, and Resend accounts.
 
 ---
 
-## ⚠️ Before you go public — production hardening
+## Accounts & first login
 
-The app currently ships in **demo mode**:
+The app is production-hardened: the login page no longer shows any credentials,
+and admins create every account in-app under **Admin → Users** (there is no
+public signup).
 
-- the login page **shows** `admin@asanaortho.com / password123` to everyone, and
-- the seed creates users with that shared password.
+Getting your first admin:
 
-**Do not expose this publicly as-is.** Before (or immediately after) the first
-deploy, do both of these:
-
-1. Remove the demo-credentials block from the login page
-   (`src/app/login/page.tsx`).
-2. Set real passwords: change `SEED_USER_PASSWORD` to something strong before
-   seeding, and change the seeded emails in `prisma/seed.ts` to your real admin
-   address — or create your own admin user and delete the demo ones.
-
-Ask and I'll make these changes for you in a few minutes.
+1. Set a strong `SEED_USER_PASSWORD` before you seed (step 4). Seeding creates a
+   starter admin `admin@asanaortho.com` with that password, plus sample data so
+   you can see the app working.
+2. Sign in as that admin, open **Admin → Users**, and create real logins for
+   your team (staff or admin). Change the starter admin's own password there too.
+3. The demo `staff@asanaortho.com` account and sample products/requests are just
+   examples — leave them for the pilot, or re-seed clean when you go live.
 
 ---
 

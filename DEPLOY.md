@@ -1,5 +1,92 @@
 # Deploying Asana Ortho Inventory Manager (live, 24/7)
 
+Two paths are documented here:
+
+- **Railway (~$5/month, recommended)** — one platform runs the app **and**
+  Postgres together, always-on, deploys straight from GitHub. Cheapest way to
+  a real multi-user tool. **Start here** ↓
+- **Vercel + Neon + Resend** — the "managed, near-zero ops" path, ~$20–40/month.
+  See [Alternative: Vercel + Neon](#alternative-vercel--neon--resend) below.
+
+Either way you'll need a GitHub account (the repo is already pushed). Email
+(Resend) is optional on both — without it, reminder/PO emails log to the server
+console instead of sending.
+
+---
+
+## Railway (~$5/month) — recommended
+
+`railway.json` in the repo already tells Railway to run database migrations
+automatically on every deploy (`prisma migrate deploy`) and to start the app,
+so the only manual database step is seeding the very first admin (once).
+
+### 1. Create the project
+1. Go to [railway.app](https://railway.app) → **Login with GitHub**.
+2. **New Project** → **Deploy from GitHub repo** → pick
+   `supplychainengineer/Inventory-Manager-`.
+3. Choose the branch to deploy (`claude/asana-ortho-inventory-manager-9ngrns`,
+   or merge it to `main` first and deploy `main`).
+
+The first build fails because there's no database yet — that's expected.
+
+### 2. Add Postgres (same project)
+In the project canvas → **New** → **Database** → **Add PostgreSQL**. Railway
+provisions it and exposes a `DATABASE_URL` you reference in the next step.
+
+### 3. Set environment variables
+App service → **Variables**:
+
+| Name | Value |
+|---|---|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (type it literally — Railway links it) |
+| `NEXTAUTH_SECRET` | run `openssl rand -base64 32` and paste the result |
+| `NEXTAUTH_URL` | your Railway URL (step 4), e.g. `https://…up.railway.app` |
+| `APP_URL` | same as `NEXTAUTH_URL` |
+| `CRON_SECRET` | run `openssl rand -hex 24` and paste the result |
+| `SEED_USER_PASSWORD` | a strong password — this is your first admin login |
+| `RESEND_API_KEY` | from Resend (optional; omit to log emails to console) |
+| `EMAIL_FROM` | your verified sender (optional) |
+
+### 4. Get your URL, then redeploy
+1. App service → **Settings → Networking → Generate Domain**.
+2. Put that full `https://…` URL into both `NEXTAUTH_URL` and `APP_URL`.
+3. **Redeploy** (Deployments → ⋯ → Redeploy). Migrations run automatically.
+
+### 5. Seed the first admin (one time only)
+Migrations already ran; you just need the starter admin + sample data. From the
+app service → ⋯ → **Terminal** (or `railway run` via the CLI locally):
+
+```bash
+npm run db:seed   # creates vendors, products, admin@asanaortho.com + staff
+```
+
+Sign in at your URL as `admin@asanaortho.com` with your `SEED_USER_PASSWORD`,
+then go to **Admin → Users** to create real logins for your team. Don't re-run
+seed after this — it's a one-time bootstrap.
+
+### 6. The daily reminder job
+Railway does **not** read `vercel.json`, so the reminder cron must be wired
+separately. Two options — the endpoint accepts either the `x-cron-secret` header
+or an `Authorization: Bearer <secret>` header:
+
+- **A — External free cron (simplest).** At [cron-job.org](https://cron-job.org)
+  create a job: **GET** `https://YOUR-URL/api/cron/reminders`, daily, with a
+  request header `x-cron-secret: <your CRON_SECRET>`. Zero cost, nothing to
+  deploy.
+- **B — Railway cron service.** Add a second service in the same project on a
+  schedule (Railway "Cron" setting) whose command curls the same endpoint with
+  the header. Stays in one platform; adds a few cents.
+
+### 7. (Optional) Custom domain, uptime, backups
+- **Domain:** App service → Settings → Networking → add your domain, follow the
+  DNS steps, then update `NEXTAUTH_URL`/`APP_URL` and redeploy.
+- **Uptime:** add a free monitor at [uptimerobot.com](https://uptimerobot.com).
+- **Backups:** enable backups on the Railway Postgres plugin.
+
+---
+
+## Alternative: Vercel + Neon + Resend
+
 This is the "managed, near-zero ops" path: **Vercel** (app + daily cron) +
 **Neon** (Postgres) + **Resend** (email). Budget ~$20–40/month. Total setup is
 about 20–30 minutes. You'll need a GitHub account (the repo is already pushed),

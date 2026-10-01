@@ -217,65 +217,32 @@
 
   // ---- seed ----------------------------------------------------------------
   function seed(){
-    const vendors=[
-      {id:"v1",name:"Henry Schein Dental",contact:"Marcy Lin, Account Rep",email:"orders@henryschein.example.com"},
-      {id:"v2",name:"Patterson Dental",contact:"Devon Ospina, Account Rep",email:"orders@patterson.example.com"},
-      {id:"v3",name:"Benco Dental",contact:"Priya Raman, Account Rep",email:"orders@benco.example.com"},
-    ];
+    // Starts empty — the admin builds the real catalog, vendors, pricing and
+    // stock from scratch after signing in. Only the two login accounts remain
+    // so you can actually get into the app (sign in as admin to add data).
+    const vendors=[];
     // onHand + reorderPoint are in BOXES (whole packs the staff can count).
     // bufferPct = per-product margin of error. Stock is kept current by a weekly
     // count that practice staff submit.
-    const products=[
-      {id:"p1",name:"Nitrile Exam Gloves (Box of 200)",category:"Consumables",preferredVendorId:"v2",unit:"box",onHand:4,reorderPoint:2,bufferPct:10},
-      {id:"p2",name:"Composite Resin Kit — A2 Shade",category:"Restorative",preferredVendorId:"v3",unit:"kit",onHand:7,reorderPoint:3,bufferPct:10},
-      {id:"p3",name:"Self-Ligating Ortho Brackets (Case)",category:"Ortho Supplies",preferredVendorId:"v3",unit:"case",onHand:2,reorderPoint:2,bufferPct:15},
-      {id:"p4",name:"Alginate Impression Material (1lb)",category:"Impression",preferredVendorId:"v1",unit:"tub",onHand:4,reorderPoint:3,bufferPct:12},
-      {id:"p5",name:"Self-Seal Sterilization Pouches (Box of 200)",category:"Sterilization",preferredVendorId:"v2",unit:"box",onHand:6,reorderPoint:3,bufferPct:10},
-      {id:"p6",name:"Universal Bonding Agent (5ml)",category:"Restorative",preferredVendorId:"v3",unit:"bottle",onHand:6,reorderPoint:3,bufferPct:12},
-    ];
+    const products=[];
     const stockTxns=[];
     // Weekly stock counts (most recent first). Each is a snapshot of boxes on
     // hand per product, submitted by practice staff. The latest count sets the
     // current on-hand; comparing the last two gives a "used last week" figure.
-    const stockCounts=[
-      {id:"sc1",at:daysFromNow(-8),countedById:"u_staff",items:[
-        {productId:"p1",boxes:4},{productId:"p2",boxes:7},{productId:"p3",boxes:2},
-        {productId:"p4",boxes:4},{productId:"p5",boxes:6},{productId:"p6",boxes:6}]},
-      {id:"sc0",at:daysFromNow(-15),countedById:"u_staff",items:[
-        {productId:"p1",boxes:6},{productId:"p2",boxes:9},{productId:"p3",boxes:4},
-        {productId:"p4",boxes:6},{productId:"p5",boxes:8},{productId:"p6",boxes:7}]},
-    ];
-    const pricing=[
-      {id:"pr1",productId:"p1",vendorId:"v1",price:12.5,deliveryDays:3},
-      {id:"pr2",productId:"p1",vendorId:"v2",price:11.95,deliveryDays:5},
-      {id:"pr3",productId:"p2",vendorId:"v1",price:89,deliveryDays:4},
-      {id:"pr4",productId:"p2",vendorId:"v3",price:84.5,deliveryDays:6},
-      {id:"pr5",productId:"p3",vendorId:"v2",price:245,deliveryDays:7},
-      {id:"pr6",productId:"p3",vendorId:"v3",price:239,deliveryDays:8},
-      {id:"pr7",productId:"p4",vendorId:"v1",price:18.75,deliveryDays:3},
-      {id:"pr8",productId:"p5",vendorId:"v2",price:22,deliveryDays:4},
-      {id:"pr9",productId:"p5",vendorId:"v1",price:23.5,deliveryDays:2},
-      {id:"pr10",productId:"p6",vendorId:"v3",price:64,deliveryDays:5},
-      {id:"pr11",productId:"p6",vendorId:"v1",price:66.5,deliveryDays:3},
-    ];
+    const stockCounts=[];
+    const pricing=[];
     const users=[
       {id:"u_admin",name:"Dr. Alina Reyes",email:"admin@asanaortho.com",role:"admin"},
       {id:"u_staff",name:"Jordan Blake",email:"staff@asanaortho.com",role:"staff"},
     ];
-    const requests=[
-      {id:"r1",productId:"p1",qty:10,requestedById:"u_staff",requestedAt:daysFromNow(0),status:"pending",reminderSent:false},
-      {id:"r2",productId:"p5",qty:6,requestedById:"u_staff",requestedAt:daysFromNow(-1),status:"ordered",vendorId:"v2",price:22,deliveryDays:4,orderedAt:daysFromNow(-1),dueDate:daysFromNow(3),reminderSent:false},
-      {id:"r3",productId:"p3",qty:2,requestedById:"u_staff",requestedAt:daysFromNow(-12),status:"ordered",vendorId:"v3",price:239,deliveryDays:8,orderedAt:daysFromNow(-12),dueDate:daysFromNow(-4),reminderSent:false},
-      {id:"r4",productId:"p2",qty:3,requestedById:"u_staff",requestedAt:daysFromNow(-20),status:"received",vendorId:"v3",price:84.5,deliveryDays:6,orderedAt:daysFromNow(-20),dueDate:daysFromNow(-14),receivedAt:daysFromNow(-15),reminderSent:false},
-      {id:"r5",productId:"p6",qty:25,requestedById:"u_staff",requestedAt:daysFromNow(-3),status:"rejected",reminderSent:false},
-    ];
-    const audit=[{id:nid("a"),at:daysFromNow(0),actorId:"u_admin",action:"seed.init",details:"Demo data loaded"}];
-    const settings={recipientEmails:["admin@asanaortho.com","frontdesk@asanaortho.com"],inventoryBufferPct:10};
+    const requests=[];
+    const audit=[];
+    const settings={recipientEmails:[],inventoryBufferPct:10};
     return {vendors,products,pricing,users,requests,stockCounts,stockTxns,audit,settings,sessionUserId:null};
   }
 
   // ---- state / persistence -------------------------------------------------
-  const KEY="asana-ortho-demo-v4";
+  const KEY="asana-ortho-demo-v5";
   let S;
   function load(){
     try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}

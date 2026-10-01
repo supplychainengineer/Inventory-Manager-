@@ -2,7 +2,7 @@ name: Deploy preview to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/asana-ortho-inventory-manager-9ngrns]
     paths:
       - "docs/**"
       - ".github/workflows/pages.yml"

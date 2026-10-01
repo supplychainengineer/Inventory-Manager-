@@ -232,8 +232,8 @@
     const stockCounts=[];
     const pricing=[];
     const users=[
-      {id:"u_admin",name:"Dr. Alina Reyes",email:"admin@asanaortho.com",role:"admin"},
-      {id:"u_staff",name:"Jordan Blake",email:"staff@asanaortho.com",role:"staff"},
+      {id:"u_admin",name:"Admin",email:"admin@asanaortho.com",role:"admin"},
+      {id:"u_staff",name:"Staff",email:"staff@asanaortho.com",role:"staff"},
     ];
     const requests=[];
     const audit=[];
@@ -242,7 +242,7 @@
   }
 
   // ---- state / persistence -------------------------------------------------
-  const KEY="asana-ortho-demo-v5";
+  const KEY="asana-ortho-demo-v6";
   let S;
   function load(){
     try{ const raw=localStorage.getItem(KEY); if(raw){ S=JSON.parse(raw); return; } }catch(e){}
@@ -428,15 +428,14 @@
       <div class="login-head"><span class="eyebrow" style="font-size:.6rem;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)">Asana Ortho</span>
         <h1 style="font-size:1.35rem;font-weight:800;margin-top:.15rem">Inventory Manager</h1></div>
       <div class="login-body">
-        <div class="form-row"><label class="label">Email</label><input class="input" id="lg-email" value="admin@asanaortho.com"></div>
-        <div class="form-row"><label class="label">Password</label><input class="input" id="lg-pass" type="password" value="password123"></div>
+        <div class="form-row"><label class="label">Email</label><input class="input" id="lg-email" placeholder="you@practice.com" value=""></div>
+        <div class="form-row"><label class="label">Password</label><input class="input" id="lg-pass" type="password" value=""></div>
         <button class="btn btn-primary" style="width:100%;justify-content:center" data-act="login">Sign in</button>
         <div class="quick">
           <button class="btn btn-secondary" data-act="quick" data-role="admin">Enter as Admin</button>
           <button class="btn btn-secondary" data-act="quick" data-role="staff">Enter as Staff</button>
         </div>
       </div>
-      <div class="login-foot">Demo accounts · admin@asanaortho.com · staff@asanaortho.com · password123</div>
     </div></div>`;
   }
 
